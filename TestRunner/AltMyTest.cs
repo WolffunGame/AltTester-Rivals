@@ -217,5 +217,10 @@ namespace TestRunner
                 path = value;
             }
         }
+
+        public override string ToString()
+        {
+            return $"testName: {_testName}, testAssembly: {_testAssembly}, status: {_status}, isSuite: {_isSuite}, type: {_type}, parentName: {_parentName}, testCaseCount: {_testCaseCount}, foldOut: {_foldOut}, testResultMessage: {_testResultMessage}, testStackTrace: {_testStackTrace}, testDuration: {_testDuration}, path: {path}, testSelectedCount: {_testSelectedCount}";
+        }
     }
 }

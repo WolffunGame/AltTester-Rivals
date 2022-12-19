@@ -1,9 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Xml;
 using Altom.AltDriver;
+using Altom.AltDriver.Logging;
 using Newtonsoft.Json;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal.Filters;
@@ -14,7 +16,7 @@ namespace TestRunner
 
     public class TestRunner
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger logger = DriverLogManager.Instance.GetCurrentClassLogger();
 
         public enum TestRunMode
         {
@@ -34,7 +36,8 @@ namespace TestRunner
 
         public static void RunTests(List<AltMyTest> myTests, TestRunMode testMode)
         {
-            logger.Debug("Started running test");
+            logger.Info("Started running test");
+            Console.WriteLine("Started running test");
             System.Reflection.Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 
             List<string> assemblyList = new List<string>();
@@ -51,6 +54,7 @@ namespace TestRunner
                     continue;
 
                 testAssemblyRunner.Load(assembly, new Dictionary<string, object>());
+                //run test thread
                 var runTestThread = new System.Threading.Thread(() =>
                 {
                     var result = testAssemblyRunner.Run(listener, filters);
@@ -59,42 +63,19 @@ namespace TestRunner
                 });
 
                 runTestThread.Start();
-                // if (AltTesterEditorWindow.EditorConfiguration.platform != AltPlatform.Editor)
-                // {
-                //     float previousProgress = progress - 1;
-                //     while (runTestThread.IsAlive)
-                //     {
-                //         if (previousProgress == progress) continue;
-                //         UnityEditor.EditorUtility.DisplayProgressBar(
-                //             progress == total ? "This may take a few seconds" : testName,
-                //             progress + "/" + total, progress / total);
-                //         previousProgress = progress;
-                //     }
-                // }
                 //log progress
-                logger.Debug("Test progress: " + progress + "/" + total);
+                float previousProgress = progress - 1;
+                while (runTestThread.IsAlive)
+                {
+                    if (previousProgress == progress) continue;
+                    logger.Info("Running test: " + testName + " " + progress + "/" + total);
+                    Console.WriteLine("Running test: " + testName + " " + progress + "/" + total);
+                    previousProgress = progress;
+                }
 
                 runTestThread.Join();
             }
-
-            // if (AltTesterEditorWindow.EditorConfiguration.createXMLReport)
-            // {
-            //     if (AltTesterEditorWindow.EditorConfiguration.xMLFilePath.Equals(""))
-            //         AltTesterEditorWindow.EditorConfiguration.xMLFilePath = "test-report.xml";
-            //
-            //     createXMLReport(AltTesterEditorWindow.EditorConfiguration.xMLFilePath, xmlContent);
-            // }
-
             createXMLReport($"test-report.xml", xmlContent);
-
-            //AltTesterEditorWindow.IsTestRunResultAvailable = true;
-            //AltTesterEditorWindow.SelectedTest = -1;
-
-            // if (AltTesterEditorWindow.EditorConfiguration.platform != AltPlatform.Editor)
-            // {
-            //     AltTesterEditorWindow.NeedsRepainting = true;
-            //     UnityEditor.EditorUtility.ClearProgressBar();
-            // }
         }
 
 
@@ -500,23 +481,10 @@ namespace TestRunner
             var parentName = string.Empty;
             if (testSuite.Parent != null)
                 parentName = testSuite.Parent.FullName;
-            AltMyTest index = null;
-            // if (AltTesterEditorWindow.EditorConfiguration.MyTests != null)
-            //     index = AltTesterEditorWindow.EditorConfiguration.MyTests.FirstOrDefault(a =>
-            //         a.TestName.Equals(testSuite.FullName) && a.ParentName.Equals(parentName));
-            if (index == null)
-            {
-                newMyTests.Add(new AltMyTest(false, testSuite.FullName, assembly, 0, testSuite.IsSuite,
-                    testSuite.GetType().ToString(),
-                    parentName, testSuite.TestCaseCount, false, null, null, 0, path, 0));
-            }
-            else
-            {
-                newMyTests.Add(new AltMyTest(index.Selected, index.TestName, assembly, index.Status, index.IsSuite,
-                    testSuite.GetType().ToString(),
-                    index.ParentName, testSuite.TestCaseCount, index.FoldOut, index.TestResultMessage,
-                    index.TestStackTrace, index.TestDuration, path, index.TestSelectedCount));
-            }
+
+            newMyTests.Add(new AltMyTest(false, testSuite.FullName, assembly, 0, testSuite.IsSuite,
+                testSuite.GetType().ToString(),
+                parentName, testSuite.TestCaseCount, false, null, null, 0, path, 0));
         }
 
         public static void RunTestFromCommandLine()
@@ -689,6 +657,26 @@ namespace TestRunner
         private static List<AltMyTest> setUpTestsForCommandLineRun()
         {
             return SetUpListTest();
+        }
+
+        public static List<AltMyTest> GetTestsByParent(string parentName)
+        {
+            var tests = SetUpListTest();
+            var parent = tests.Find(test => test.TestName == parentName);
+            var parentIndex = tests.IndexOf(parent);
+            var children = new List<AltMyTest>();
+            for (int i = 0; i < parent.TestCaseCount; i++)
+            {
+                children.Add(tests[parentIndex + i + 1]);
+            }
+
+            return children;
+        }
+        
+        public static void RunTestByParent(string parentName)
+        {
+            var tests = GetTestsByParent(parentName);
+            RunTests(tests, TestRunMode.RunAllTest);
         }
     }
 }

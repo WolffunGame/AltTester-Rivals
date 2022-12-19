@@ -1,21 +1,27 @@
+using System;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
 using NUnit.Framework;
+using TestRunner.Services;
 
 namespace Wolffun.Automation.Tests
 {
-    [Timeout(30000)]
+    [Timeout(1000)]
     public class TestLoginNotHaveTutorial
     {
         private AltDriver altDriver;
-        
+        private readonly int _port = -1;
+
         [OneTimeSetUp]
         public void SetUp()
         {
-            altDriver = new AltDriver(host: TestsHelper.GetAltDriverHost(), port: TestsHelper.GetAltDriverPort(),
+            var port = _port == -1 ? PoolPort.GetAvailablePort() : _port;
+            altDriver = new AltDriver(host: TestsHelper.GetAltDriverHost(),
+                port: port,
                 enableLogging: true);
+            Console.WriteLine("AltDriver started on port: " + port);
             DriverLogManager.SetMinLogLevel(AltLogger.Console, AltLogLevel.Info);
-            DriverLogManager.SetMinLogLevel(AltLogger.Unity, AltLogLevel.Info);
+            //DriverLogManager.SetMinLogLevel(AltLogger.Unity, AltLogLevel.Info);
         }
 
         [OneTimeTearDown]
@@ -30,16 +36,18 @@ namespace Wolffun.Automation.Tests
             altDriver.ResetInput();
 
             altDriver.SetCommandResponseTimeout(60);
-           
+            
+            Console.WriteLine("Loading level");
         }
-        
+
         [Test]
         public void Test1CheckCurrentSceneIsLogin()
         {
+            Console.WriteLine("Test1CheckCurrentSceneIsLogin");
             altDriver.WaitForCurrentSceneToBe(Constant.LoginScene);
             Assert.AreEqual(Constant.LoginScene, altDriver.GetCurrentScene());
         }
-        
+
         [Test]
         public void Test2ClickLoginAsGuessButton()
         {
@@ -49,7 +57,7 @@ namespace Wolffun.Automation.Tests
             var acceptWarning = altDriver.WaitForObject(By.PATH, "/LoginCanvas/PUPlayAsGuest_popup/Content/BtnAccept");
             acceptWarning.Click();
         }
-        
+
         [Test]
         public void Test3ClickOnPlayButton()
         {
@@ -58,10 +66,11 @@ namespace Wolffun.Automation.Tests
             var playButton = altDriver.FindObject(By.PATH, "//home_menu(Clone)/objPlayAndReady/btnPlay");
             playButton.Click();
 
-            var cancelButton = altDriver.WaitForObject(By.PATH, "/LayerContainer/Main_Container/home_menu(Clone)/btnCancelFindMatch", enabled: true, timeout: 2);
+            var cancelButton = altDriver.WaitForObject(By.PATH,
+                "/LayerContainer/Main_Container/home_menu(Clone)/btnCancelFindMatch", enabled: true, timeout: 2);
             Assert.NotNull(cancelButton);
         }
-        
+
         [Test]
         public void Test4CurrentSceneIsNotHome()
         {
@@ -79,7 +88,7 @@ namespace Wolffun.Automation.Tests
             altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
             Assert.AreEqual(Constant.BattleEndRewardScene, altDriver.GetCurrentScene());
         }
-        
+
         [Test]
         public void Test6ClickOnContinueButton()
         {
@@ -90,6 +99,5 @@ namespace Wolffun.Automation.Tests
             altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);
             Assert.AreEqual(Constant.HomeWithoutLobbyScene, altDriver.GetCurrentScene());
         }
-
     }
 }
