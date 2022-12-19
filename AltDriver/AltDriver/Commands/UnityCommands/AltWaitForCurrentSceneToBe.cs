@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 
 namespace Altom.AltDriver.Commands
@@ -15,20 +16,20 @@ namespace Altom.AltDriver.Commands
             this.timeout = timeout;
             this.interval = interval;
         }
-        public void Execute()
+        public async Task Execute()
         {
             double time = 0;
             string currentScene = "";
             while (time < timeout)
             {
-                currentScene = new AltGetCurrentScene(CommHandler).Execute();
+                currentScene = await new AltGetCurrentScene(CommHandler).Execute();
                 if (currentScene.Equals(sceneName))
                 {
                     return;
                 }
 
                 logger.Debug("Waiting for scene to be " + sceneName + "...");
-                Thread.Sleep(System.Convert.ToInt32(interval * 1000));
+                await Task.Delay(System.Convert.ToInt32(interval * 1000));
                 time += interval;
             }
 

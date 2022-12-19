@@ -1,20 +1,23 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltFindObject : AltBaseFindObjects
     {
         AltFindObjectParams cmdParams;
 
-        public AltFindObject(IDriverCommunication commHandler, By by, string value, By cameraBy, string cameraValue, bool enabled) : base(commHandler)
+        public AltFindObject(IDriverCommunication commHandler, By by, string value, By cameraBy, string cameraValue,
+            bool enabled) : base(commHandler)
         {
             cameraValue = SetPath(cameraBy, cameraValue);
             string path = SetPath(by, value);
             cmdParams = new AltFindObjectParams(path, cameraBy, cameraValue, enabled);
         }
 
-        public AltObject Execute()
+        public async Task<AltObject> Execute()
         {
-            CommHandler.Send(cmdParams);
-            var altTesterObject = CommHandler.Recvall<AltObject>(cmdParams);
+            await CommHandler.Send(cmdParams);
+            var altTesterObject = await CommHandler.Recvall<AltObject>(cmdParams);
             altTesterObject.CommHandler = CommHandler;
             return altTesterObject;
         }

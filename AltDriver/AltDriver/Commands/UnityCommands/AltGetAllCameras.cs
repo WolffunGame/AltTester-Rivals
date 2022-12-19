@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltGetAllCameras : AltBaseFindObjects
@@ -7,7 +9,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetAllCamerasParams();
         }
-        public System.Collections.Generic.List<AltObject> Execute()
+        public Task<System.Collections.Generic.List<AltObject>> Execute()
         {
             CommHandler.Send(cmdParams);
             return ReceiveListOfAltObjects(cmdParams);

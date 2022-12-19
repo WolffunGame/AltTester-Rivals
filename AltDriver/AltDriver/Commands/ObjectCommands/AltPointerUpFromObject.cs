@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltPointerUpFromObject : AltCommandReturningAltElement
@@ -8,7 +10,7 @@ namespace Altom.AltDriver.Commands
         {
             this.cmdParams = new AltPointerUpFromObjectParams(altObject);
         }
-        public AltObject Execute()
+        public Task<AltObject> Execute()
         {
             CommHandler.Send(cmdParams);
             return ReceiveAltObject(cmdParams);

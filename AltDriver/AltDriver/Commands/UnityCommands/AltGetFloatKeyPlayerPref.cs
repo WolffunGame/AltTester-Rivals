@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltGetFloatKeyPlayerPref : AltBaseCommand
@@ -7,7 +9,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetKeyPlayerPrefParams(keyName, PlayerPrefKeyType.Float);
         }
-        public float Execute()
+        public Task<float> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<float>(cmdParams);

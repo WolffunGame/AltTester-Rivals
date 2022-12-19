@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
 using NUnit.Framework;
@@ -36,67 +37,68 @@ namespace Wolffun.Automation.Tests
             altDriver.ResetInput();
 
             altDriver.SetCommandResponseTimeout(60);
-            
+
             Console.WriteLine("Loading level");
         }
 
         [Test]
-        public void Test1CheckCurrentSceneIsLogin()
+        public async Task Test1CheckCurrentSceneIsLogin()
         {
             Console.WriteLine("Test1CheckCurrentSceneIsLogin");
-            altDriver.WaitForCurrentSceneToBe(Constant.LoginScene);
+            await altDriver.WaitForCurrentSceneToBe(Constant.LoginScene);
             Assert.AreEqual(Constant.LoginScene, altDriver.GetCurrentScene());
         }
 
         [Test]
-        public void Test2ClickLoginAsGuessButton()
+        public async Task Test2ClickLoginAsGuessButton()
         {
-            altDriver.WaitFor(3);
-            var loginAsGuess = altDriver.FindObject(By.PATH, "/LoginCanvas/btnContainer/btnLoginAsGuest");
-            loginAsGuess.Click();
-            var acceptWarning = altDriver.WaitForObject(By.PATH, "/LoginCanvas/PUPlayAsGuest_popup/Content/BtnAccept");
-            acceptWarning.Click();
+            await altDriver.WaitFor(3);
+            var loginAsGuess = await altDriver.FindObject(By.PATH, "/LoginCanvas/btnContainer/btnLoginAsGuest");
+            await loginAsGuess.Click();
+            var acceptWarning =
+                await altDriver.WaitForObject(By.PATH, "/LoginCanvas/PUPlayAsGuest_popup/Content/BtnAccept");
+            await acceptWarning.Click();
         }
 
         [Test]
-        public void Test3ClickOnPlayButton()
+        public async Task Test3ClickOnPlayButton()
         {
-            altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);
-            altDriver.WaitFor(5);
-            var playButton = altDriver.FindObject(By.PATH, "//home_menu(Clone)/objPlayAndReady/btnPlay");
-            playButton.Click();
+            await altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);
+            await altDriver.WaitFor(5);
+            var playButton = await altDriver.FindObject(By.PATH, "//home_menu(Clone)/objPlayAndReady/btnPlay");
+            await playButton.Click();
 
-            var cancelButton = altDriver.WaitForObject(By.PATH,
+            var cancelButton = await altDriver.WaitForObject(By.PATH,
                 "/LayerContainer/Main_Container/home_menu(Clone)/btnCancelFindMatch", enabled: true, timeout: 2);
             Assert.NotNull(cancelButton);
         }
 
         [Test]
-        public void Test4CurrentSceneIsNotHome()
+        public async Task Test4CurrentSceneIsNotHome()
         {
-            altDriver.WaitForObject(By.PATH, "//Control PC", timeout: 50);
+            await altDriver.WaitForObject(By.PATH, "//Control PC", timeout: 50);
             Assert.That(altDriver.GetCurrentScene(), Is.Not.EqualTo(Constant.HomeWithoutLobbyScene));
             Assert.That(altDriver.GetCurrentScene(), Is.Not.EqualTo(Constant.LoadingScene));
         }
 
         [Test]
-        public void Test5LoseAnyGame()
+        public async Task Test5LoseAnyGame()
         {
-            var leaveButton = altDriver.WaitForObject(By.PATH, "//BaseCanvas/BtnLeave", timeout: 300);
-            altDriver.WaitFor(5);
-            leaveButton.Click();
-            altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
+            var leaveButton = await altDriver.WaitForObject(By.PATH, "//BaseCanvas/BtnLeave", timeout: 300);
+            await altDriver.WaitFor(5);
+            await leaveButton.Click();
+            await altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
             Assert.AreEqual(Constant.BattleEndRewardScene, altDriver.GetCurrentScene());
         }
 
         [Test]
-        public void Test6ClickOnContinueButton()
+        public async Task Test6ClickOnContinueButton()
         {
-            altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
-            altDriver.WaitFor(4);
-            var continueButton = altDriver.FindObject(By.PATH, "/Canvas/battle_reward/continue_button");
-            continueButton.Click();
-            altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);
+            await altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
+            await altDriver.WaitFor(4);
+            var continueButton = await altDriver.FindObject(By.PATH, "/Canvas/battle_reward/continue_button");
+            await continueButton.Click();
+            await altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);
             Assert.AreEqual(Constant.HomeWithoutLobbyScene, altDriver.GetCurrentScene());
         }
     }

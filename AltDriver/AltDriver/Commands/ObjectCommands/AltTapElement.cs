@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltTapElement : AltCommandReturningAltElement
@@ -12,14 +14,14 @@ namespace Altom.AltDriver.Commands
              interval,
              wait);
         }
-        public AltObject Execute()
+        public async Task<AltObject> Execute()
         {
-            CommHandler.Send(cmdParams);
-            var element = ReceiveAltObject(cmdParams);
+            await CommHandler.Send(cmdParams);
+            var element = await ReceiveAltObject(cmdParams);
 
             if (cmdParams.wait)
             {
-                var data = CommHandler.Recvall<string>(cmdParams);
+                var data = await CommHandler.Recvall<string>(cmdParams);
                 ValidateResponse("Finished", data);
             }
             return element;

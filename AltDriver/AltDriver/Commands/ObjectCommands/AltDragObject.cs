@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltDragObject : AltCommandReturningAltElement
@@ -7,7 +9,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltDragObjectParams(altObject, position);
         }
-        public AltObject Execute()
+        public Task<AltObject> Execute()
         {
             CommHandler.Send(cmdParams);
             return ReceiveAltObject(cmdParams);

@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltFindObjectAtCoordinates : AltCommandReturningAltElement
@@ -9,7 +11,7 @@ namespace Altom.AltDriver.Commands
             cmdParams = new AltFindObjectAtCoordinatesParams(coordinates);
         }
 
-        public AltObject Execute()
+        public Task<AltObject> Execute()
         {
             CommHandler.Send(cmdParams);
             return ReceiveAltObject(cmdParams);

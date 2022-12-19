@@ -1,4 +1,6 @@
+using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 
 namespace Altom.AltDriver.Commands
@@ -14,15 +16,10 @@ namespace Altom.AltDriver.Commands
             _timeout = timeout;
         }
         
-        public void Execute()
+        public async Task Execute()
         {
             logger.Info("Waiting for " + _timeout + " seconds");
-            double time = 0;
-            while (time < _timeout)
-            {
-                Thread.Sleep(1000);
-                time++;
-            }
+            await Task.Delay(TimeSpan.FromSeconds(_timeout));
         }
     }
 }

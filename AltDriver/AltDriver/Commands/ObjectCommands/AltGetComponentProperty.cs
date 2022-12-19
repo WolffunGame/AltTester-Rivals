@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltGetComponentProperty<T> : AltBaseCommand
@@ -7,7 +9,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetObjectComponentPropertyParams(altObject, componentName, propertyName, assemblyName, maxDepth);
         }
-        public T Execute()
+        public Task<T> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<T>(cmdParams);

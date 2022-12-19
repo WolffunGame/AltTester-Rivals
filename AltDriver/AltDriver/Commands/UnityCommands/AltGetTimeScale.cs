@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Altom.AltDriver.Commands
@@ -9,7 +10,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetTimeScaleParams();
         }
-        public float Execute()
+        public Task<float> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<float>(cmdParams);

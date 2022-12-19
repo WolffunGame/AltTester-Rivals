@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Altom.AltDriver.Commands
 {
@@ -9,7 +10,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetAllLoadedScenesParams();
         }
-        public List<string> Execute()
+        public Task<List<string>> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<List<string>>(cmdParams);

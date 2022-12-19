@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltUnloadScene : AltBaseCommand
@@ -7,14 +9,14 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltUnloadSceneParams(sceneName);
         }
-        public void Execute()
+        public async Task Execute()
         {
-            CommHandler.Send(cmdParams);
+           await CommHandler.Send(cmdParams);
 
-            var data = CommHandler.Recvall<string>(cmdParams);
+            var data =await CommHandler.Recvall<string>(cmdParams);
             ValidateResponse("Ok", data);
 
-            data = CommHandler.Recvall<string>(cmdParams);
+            data =await CommHandler.Recvall<string>(cmdParams);
             ValidateResponse("Scene Unloaded", data);
         }
     }

@@ -1,12 +1,13 @@
 using System;
+using System.Threading.Tasks;
 using Altom.AltDriver.Notifications;
 
 namespace Altom.AltDriver.Commands
 {
     public interface IDriverCommunication
     {
-        void Send(CommandParams param);
-        T Recvall<T>(CommandParams param);
+        Task Send(CommandParams param);
+        Task<T> Recvall<T>(CommandParams param);
         void AddNotificationListener<T>(NotificationType notificationType, Action<T> callback, bool overwrite);
         void RemoveNotificationListener(NotificationType notificationType);
         void Connect();
@@ -14,6 +15,6 @@ namespace Altom.AltDriver.Commands
         void SetCommandTimeout(int timeout);
         void SetDelayAfterCommand(float delay);
         float GetDelayAfterCommand();
-        void SleepFor(float time);
+        Task SleepFor(float time);
     }
 }

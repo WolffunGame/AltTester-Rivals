@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltSetComponentProperty : AltBaseCommand
@@ -9,10 +11,10 @@ namespace Altom.AltDriver.Commands
             var strValue = Newtonsoft.Json.JsonConvert.SerializeObject(value);
             cmdParams = new AltSetObjectComponentPropertyParams(altObject, componentName, propertyName, assemblyName, strValue);
         }
-        public void Execute()
+        public async Task Execute()
         {
-            CommHandler.Send(cmdParams);
-            var data = CommHandler.Recvall<string>(cmdParams);
+           await CommHandler.Send(cmdParams);
+            var data =await CommHandler.Recvall<string>(cmdParams);
 
             ValidateResponse("valueSet", data);
         }

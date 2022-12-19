@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltTapCoordinates : AltBaseCommand
@@ -7,14 +9,14 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltTapCoordinatesParams(coordinates, count, interval, wait);
         }
-        public void Execute()
+        public async Task Execute()
         {
-            CommHandler.Send(cmdParams);
-            string data = CommHandler.Recvall<string>(cmdParams);
+           await CommHandler.Send(cmdParams);
+            string data =await CommHandler.Recvall<string>(cmdParams);
             ValidateResponse("Ok", data);
             if (cmdParams.wait)
             {
-                data = CommHandler.Recvall<string>(cmdParams); ;
+                data =await CommHandler.Recvall<string>(cmdParams); ;
                 ValidateResponse("Finished", data);
             }
         }

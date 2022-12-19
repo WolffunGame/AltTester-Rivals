@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Altom.AltDriver.Commands
 {
@@ -11,7 +12,7 @@ namespace Altom.AltDriver.Commands
             cmdParams = new AltGetAllPropertiesParams(altObject.id, altComponent, altPropertiesSelections);
 
         }
-        public List<AltProperty> Execute()
+        public Task<List<AltProperty>> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<List<AltProperty>>(cmdParams);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Altom.AltDriver.Commands
 {
@@ -10,7 +11,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetAllLoadedScenesAndObjectsParams("//*", By.NAME, "", enabled);
         }
-        public List<AltObjectLight> Execute()
+        public Task<List<AltObjectLight>> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<List<AltObjectLight>>(cmdParams);

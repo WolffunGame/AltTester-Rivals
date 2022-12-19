@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security.Permissions;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 using Altom.AltDriver.Notifications;
 using AltWebSocketSharp;
@@ -87,7 +88,7 @@ namespace Altom.AltDriver.Commands
             };
         }
 
-        public T Recvall<T>(CommandParams param)
+        public Task<T> Recvall<T>(CommandParams param)
         {
             Stopwatch watch = Stopwatch.StartNew();
             while (true)
@@ -119,10 +120,10 @@ namespace Altom.AltDriver.Commands
                     throw new AltRecvallMessageIdException(string.Format("Response received does not match command send. Expected {0}:{1}. Got {2}:{3}", param.commandName, param.messageId, message.commandName, message.messageId));
                 }
                 handleErrors(message.error);
-                if (message.data == null) return default(T);
+                if (message.data == null) return Task.FromResult(default(T));
                 try
                 {
-                    return JsonConvert.DeserializeObject<T>(message.data);
+                    return Task.FromResult(JsonConvert.DeserializeObject<T>(message.data.ToString()));
                 }
                 catch (JsonReaderException)
                 {
@@ -132,7 +133,7 @@ namespace Altom.AltDriver.Commands
         }
 
 
-        public void Send(CommandParams param)
+        public Task Send(CommandParams param)
         {
             param.messageId = DateTimeOffset.Now.ToUnixTimeMilliseconds().ToString();
             string message = JsonConvert.SerializeObject(param, new JsonSerializerSettings
@@ -142,6 +143,8 @@ namespace Altom.AltDriver.Commands
             });
             this.wsClient.Send(message);
             logger.Debug("command sent: " + trimLog(message));
+
+            return Task.CompletedTask;
         }
 
         public void Close()
@@ -339,9 +342,10 @@ namespace Altom.AltDriver.Commands
             return delayAfterCommand;
         }
 
-        public void SleepFor(float time)
+        public async Task SleepFor(float time)
         {
-            Thread.Sleep(System.Convert.ToInt32(time * 1000));
+            //Thread.Sleep(System.Convert.ToInt32(time * 1000));
+            await Task.Delay(System.Convert.ToInt32(time * 1000));
         }
     }
 }

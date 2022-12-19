@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Altom.AltDriver.Commands
@@ -9,16 +10,16 @@ namespace Altom.AltDriver.Commands
         {
         }
 
-        protected AltObject ReceiveAltObject(CommandParams cmdParams)
+        protected async Task<AltObject> ReceiveAltObject(CommandParams cmdParams)
         {
-            var altElement = CommHandler.Recvall<AltObject>(cmdParams);
+            var altElement = await CommHandler.Recvall<AltObject>(cmdParams);
             if (altElement != null) altElement.CommHandler = CommHandler;
 
             return altElement;
         }
-        protected List<AltObject> ReceiveListOfAltObjects(CommandParams cmdParams)
+        protected async Task<List<AltObject>> ReceiveListOfAltObjects(CommandParams cmdParams)
         {
-            var altElements = CommHandler.Recvall<List<AltObject>>(cmdParams);
+            var altElements = await CommHandler.Recvall<List<AltObject>>(cmdParams);
 
             foreach (var altElement in altElements)
             {

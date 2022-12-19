@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Altom.AltDriver.Commands
 {
@@ -9,7 +10,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltFindObjectsLightParams("//*", cameraBy, SetPath(cameraBy, cameraValue), enabled);
         }
-        public List<AltObjectLight> Execute()
+        public Task<List<AltObjectLight>> Execute()
         {
             CommHandler.Send(cmdParams);
 

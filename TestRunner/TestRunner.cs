@@ -61,7 +61,7 @@ namespace TestRunner
                     result.AddToXml(xmlContent, true);
                     setTestStatus(result);
                 });
-
+                
                 runTestThread.Start();
                 //log progress
                 float previousProgress = progress - 1;
@@ -73,7 +73,7 @@ namespace TestRunner
                     previousProgress = progress;
                 }
 
-                runTestThread.Join();
+                //runTestThread.Join();
             }
             createXMLReport($"test-report.xml", xmlContent);
         }

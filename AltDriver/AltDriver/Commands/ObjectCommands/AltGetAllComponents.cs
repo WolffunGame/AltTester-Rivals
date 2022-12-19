@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Altom.AltDriver.Commands
@@ -10,7 +11,7 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetAllComponentsParams(altObject.id);
         }
-        public List<AltComponent> Execute()
+        public Task<List<AltComponent>> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<List<AltComponent>>(cmdParams);

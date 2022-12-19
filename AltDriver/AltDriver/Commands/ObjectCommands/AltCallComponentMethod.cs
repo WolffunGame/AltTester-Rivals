@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Altom.AltDriver.Commands
@@ -15,10 +16,10 @@ namespace Altom.AltDriver.Commands
                 Culture = System.Globalization.CultureInfo.InvariantCulture
             })).ToArray(), typeOfParameters, assembly);
         }
-        public T Execute()
+        public async Task<T> Execute()
         {
-            CommHandler.Send(cmdParams);
-            T data = CommHandler.Recvall<T>(cmdParams);
+           await CommHandler.Send(cmdParams);
+            T data = await CommHandler.Recvall<T>(cmdParams);
             return data;
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Commands;
 using Altom.AltDriver.Logging;
 using Altom.AltDriver.Notifications;
@@ -9,7 +10,13 @@ namespace Altom.AltDriver
 {
     public enum By
     {
-        TAG, LAYER, NAME, COMPONENT, PATH, ID, TEXT
+        TAG,
+        LAYER,
+        NAME,
+        COMPONENT,
+        PATH,
+        ID,
+        TEXT
     }
 
     public class AltDriver
@@ -18,7 +25,10 @@ namespace Altom.AltDriver
         private readonly IDriverCommunication communicationHandler;
         public static readonly string VERSION = "1.8.1";
 
-        public IDriverCommunication CommunicationHandler { get { return communicationHandler; } }
+        public IDriverCommunication CommunicationHandler
+        {
+            get { return communicationHandler; }
+        }
 
         /// <summary>
         /// Initiates AltDriver and begins connection with the instrumented Unity application through to AltProxy
@@ -27,12 +37,15 @@ namespace Altom.AltDriver
         /// <param name="port">The port AltProxy is listening on.</param>
         /// <param name="enableLogging">If true it enables driver commands logging to log file and Unity.</param>
         /// <param name="connectTimeout">The connect timeout in seconds.</param>
-        public AltDriver(string host = "127.0.0.1", int port = 13000, bool enableLogging = false, int connectTimeout = 60)
+        public AltDriver(string host = "127.0.0.1", int port = 13000, bool enableLogging = false,
+            int connectTimeout = 60)
         {
 #if UNITY_EDITOR || ALTTESTER
-            var defaultLevels = new Dictionary<AltLogger, AltLogLevel> { { AltLogger.File, AltLogLevel.Debug }, { AltLogger.Unity, AltLogLevel.Debug } };
+            var defaultLevels =
+ new Dictionary<AltLogger, AltLogLevel> { { AltLogger.File, AltLogLevel.Debug }, { AltLogger.Unity, AltLogLevel.Debug } };
 #else
-                var defaultLevels = new Dictionary<AltLogger, AltLogLevel> { { AltLogger.File, AltLogLevel.Debug }, { AltLogger.Console, AltLogLevel.Debug } };
+            var defaultLevels = new Dictionary<AltLogger, AltLogLevel>
+                {{AltLogger.File, AltLogLevel.Debug}, {AltLogger.Console, AltLogLevel.Debug}};
 #endif
 
             DriverLogManager.SetupAltDriverLogging(defaultLevels);
@@ -43,19 +56,19 @@ namespace Altom.AltDriver
             communicationHandler = new DriverCommunicationWebSocket(host, port, connectTimeout);
             communicationHandler.Connect();
 
-            checkServerVersion();
+            checkServerVersion().Wait();
         }
 
         private void splitVersion(string version, out string major, out string minor)
         {
-            var parts = version.Split(new[] { "." }, StringSplitOptions.None);
+            var parts = version.Split(new[] {"."}, StringSplitOptions.None);
             major = parts[0];
             minor = parts.Length > 1 ? parts[1] : string.Empty;
         }
 
-        private void checkServerVersion()
+        private async Task checkServerVersion()
         {
-            string serverVersion = GetServerVersion();
+            string serverVersion = await GetServerVersion();
 
             string majorServer;
             string majorDriver;
@@ -67,7 +80,8 @@ namespace Altom.AltDriver
 
             if (majorServer != majorDriver || minorServer != minorDriver)
             {
-                string message = "Version mismatch. AltDriver version is " + VERSION + ". AltTester version is " + serverVersion + ".";
+                string message = "Version mismatch. AltDriver version is " + VERSION + ". AltTester version is " +
+                                 serverVersion + ".";
                 logger.Warn(message);
             }
         }
@@ -77,9 +91,9 @@ namespace Altom.AltDriver
             communicationHandler.Close();
         }
 
-        public void ResetInput()
+        public Task ResetInput()
         {
-            new AltResetInput(communicationHandler).Execute();
+            return new AltResetInput(communicationHandler).Execute();
         }
 
         public void SetCommandResponseTimeout(int commandTimeout)
@@ -97,10 +111,10 @@ namespace Altom.AltDriver
             return communicationHandler.GetDelayAfterCommand();
         }
 
-        public string GetServerVersion()
+        public async Task<string> GetServerVersion()
         {
-            string serverVersion = new AltGetServerVersion(communicationHandler).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            string serverVersion = await new AltGetServerVersion(communicationHandler).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return serverVersion;
         }
 
@@ -112,139 +126,157 @@ namespace Altom.AltDriver
                 DriverLogManager.StopLogging();
         }
 
-        public void LoadScene(string scene, bool loadSingle = true)
+        public async Task LoadScene(string scene, bool loadSingle = true)
         {
-            new AltLoadScene(communicationHandler, scene, loadSingle).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltLoadScene(communicationHandler, scene, loadSingle).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void UnloadScene(string scene)
+        public async Task UnloadScene(string scene)
         {
-            new AltUnloadScene(communicationHandler, scene).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltUnloadScene(communicationHandler, scene).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public List<string> GetAllLoadedScenes()
+        public async Task<List<string>> GetAllLoadedScenes()
         {
-            var sceneList = new AltGetAllLoadedScenes(communicationHandler).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            var sceneList = await new AltGetAllLoadedScenes(communicationHandler).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return sceneList;
         }
 
-        public List<AltObject> FindObjects(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<List<AltObject>> FindObjects(By by, string value, By cameraBy = By.NAME, string cameraValue = "",
+            bool enabled = true)
         {
-            var listOfObjects = new AltFindObjects(communicationHandler, by, value, cameraBy, cameraValue, enabled).Execute();
+            var listOfObjects = new AltFindObjects(communicationHandler, by, value, cameraBy, cameraValue, enabled)
+                .Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfObjects;
         }
 
-        public List<AltObject> FindObjectsWhichContain(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<List<AltObject>> FindObjectsWhichContain(By by, string value, By cameraBy = By.NAME,
+            string cameraValue = "", bool enabled = true)
         {
-            var listOfObjects = new AltFindObjectsWhichContain(communicationHandler, by, value, cameraBy, cameraValue, enabled).Execute();
+            var listOfObjects =
+                new AltFindObjectsWhichContain(communicationHandler, by, value, cameraBy, cameraValue, enabled)
+                    .Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfObjects;
         }
 
-        public AltObject FindObject(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<AltObject> FindObject(By by, string value, By cameraBy = By.NAME, string cameraValue = "",
+            bool enabled = true)
         {
-            var findObject = new AltFindObject(communicationHandler, by, value, cameraBy, cameraValue, enabled).Execute();
+            var findObject =
+                new AltFindObject(communicationHandler, by, value, cameraBy, cameraValue, enabled).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return findObject;
         }
 
-        public AltObject FindObjectWhichContains(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<AltObject> FindObjectWhichContains(By by, string value, By cameraBy = By.NAME,
+            string cameraValue = "",
+            bool enabled = true)
         {
-            var findObject = new AltFindObjectWhichContains(communicationHandler, by, value, cameraBy, cameraValue, enabled).Execute();
+            var findObject =
+                new AltFindObjectWhichContains(communicationHandler, by, value, cameraBy, cameraValue, enabled)
+                    .Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return findObject;
         }
 
-        public void SetTimeScale(float timeScale)
+        public async Task SetTimeScale(float timeScale)
         {
-            new AltSetTimeScale(communicationHandler, timeScale).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetTimeScale(communicationHandler, timeScale).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public float GetTimeScale()
+        public Task<float> GetTimeScale()
         {
             var timeScale = new AltGetTimeScale(communicationHandler).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return timeScale;
         }
 
-        public T CallStaticMethod<T>(string typeName, string methodName, string assemblyName,
-                    object[] parameters, string[] typeOfParameters = null)
+        public Task<T> CallStaticMethod<T>(string typeName, string methodName, string assemblyName,
+            object[] parameters, string[] typeOfParameters = null)
         {
-            var result = new AltCallStaticMethod<T>(communicationHandler, typeName, methodName, parameters, typeOfParameters, assemblyName).Execute();
+            var result = new AltCallStaticMethod<T>(communicationHandler, typeName, methodName, parameters,
+                typeOfParameters, assemblyName).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return result;
         }
 
-        public T GetStaticProperty<T>(string componentName, string propertyName, string assemblyName, int maxDepth = 2)
+        public Task<T> GetStaticProperty<T>(string componentName, string propertyName, string assemblyName,
+            int maxDepth = 2)
         {
-            var propertyValue = new AltGetStaticProperty<T>(communicationHandler, componentName, propertyName, assemblyName, maxDepth).Execute();
+            var propertyValue =
+                new AltGetStaticProperty<T>(communicationHandler, componentName, propertyName, assemblyName, maxDepth)
+                    .Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return propertyValue;
         }
 
-        public void SetStaticProperty(string componentName, string propertyName, string assemblyName, object updatedProperty)
+        public async Task SetStaticProperty(string componentName, string propertyName, string assemblyName,
+            object updatedProperty)
         {
-            new AltSetStaticProperty(communicationHandler, componentName, propertyName, assemblyName, updatedProperty).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetStaticProperty(communicationHandler, componentName, propertyName, assemblyName,
+                    updatedProperty)
+                .Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void DeletePlayerPref()
+        public async Task DeletePlayerPref()
         {
-            new AltDeletePlayerPref(communicationHandler).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltDeletePlayerPref(communicationHandler).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void DeleteKeyPlayerPref(string keyName)
+        public async Task DeleteKeyPlayerPref(string keyName)
         {
-            new AltDeleteKeyPlayerPref(communicationHandler, keyName).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltDeleteKeyPlayerPref(communicationHandler, keyName).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void SetKeyPlayerPref(string keyName, int valueName)
+        public async Task SetKeyPlayerPref(string keyName, int valueName)
         {
-            new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void SetKeyPlayerPref(string keyName, float valueName)
+        public async Task SetKeyPlayerPref(string keyName, float valueName)
         {
-            new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void SetKeyPlayerPref(string keyName, string valueName)
+        public async Task SetKeyPlayerPref(string keyName, string valueName)
         {
-            new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetKeyPLayerPref(communicationHandler, keyName, valueName).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public int GetIntKeyPlayerPref(string keyName)
+        public Task<int> GetIntKeyPlayerPref(string keyName)
         {
             var keyValue = new AltGetIntKeyPlayerPref(communicationHandler, keyName).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return keyValue;
         }
 
-        public float GetFloatKeyPlayerPref(string keyName)
+        public Task<float> GetFloatKeyPlayerPref(string keyName)
         {
             var keyValue = new AltGetFloatKeyPlayerPref(communicationHandler, keyName).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return keyValue;
         }
 
-        public string GetStringKeyPlayerPref(string keyName)
+        public Task<string> GetStringKeyPlayerPref(string keyName)
         {
             var keyValue = new AltGetStringKeyPlayerPref(communicationHandler, keyName).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return keyValue;
         }
 
-        public string GetCurrentScene()
+        public Task<string> GetCurrentScene()
         {
             var sceneName = new AltGetCurrentScene(communicationHandler).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
@@ -258,10 +290,10 @@ namespace Altom.AltDriver
         /// <param name="end">Coordinates of the screen where the swipe ends</param>
         /// <param name="duration">The time measured in seconds to move the mouse from start to end location. Defaults to <c>0.1</c>.</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Swipe(AltVector2 start, AltVector2 end, float duration = 0.1f, bool wait = true)
+        public async Task Swipe(AltVector2 start, AltVector2 end, float duration = 0.1f, bool wait = true)
         {
-            new AltSwipe(communicationHandler, start, end, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSwipe(communicationHandler, start, end, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -270,10 +302,10 @@ namespace Altom.AltDriver
         /// <param name="positions">A list of positions on the screen where the swipe be made.</param>
         /// <param name="duration">The time measured in seconds to swipe from first position to the last position. Defaults to <code>0.1</code>.</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void MultipointSwipe(AltVector2[] positions, float duration = 0.1f, bool wait = true)
+        public async Task MultipointSwipe(AltVector2[] positions, float duration = 0.1f, bool wait = true)
         {
-            new AltMultipointSwipe(communicationHandler, positions, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltMultipointSwipe(communicationHandler, positions, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -282,9 +314,9 @@ namespace Altom.AltDriver
         /// <param name="coordinates">The coordinates where the button is held down.</param>
         /// <param name="duration">The time measured in seconds to keep the button down.</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void HoldButton(AltVector2 coordinates, float duration, bool wait = true)
+        public Task HoldButton(AltVector2 coordinates, float duration, bool wait = true)
         {
-            Swipe(coordinates, coordinates, duration, wait);
+            return Swipe(coordinates, coordinates, duration, wait);
         }
 
         /// <summary>
@@ -294,10 +326,10 @@ namespace Altom.AltDriver
         /// <param name="power" >A value between [-1,1] used for joysticks to indicate how hard the button was pressed. Defaults to <c>1</c>.</param>
         /// <param name="duration">The time measured in seconds from the key press to the key release. Defaults to <c>0.1</c></param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void PressKey(AltKeyCode keyCode, float power = 1, float duration = 0.1f, bool wait = true)
+        public Task PressKey(AltKeyCode keyCode, float power = 1, float duration = 0.1f, bool wait = true)
         {
-            AltKeyCode[] keyCodes = { keyCode };
-            PressKeys(keyCodes, power, duration, wait);
+            AltKeyCode[] keyCodes = {keyCode};
+            return PressKeys(keyCodes, power, duration, wait);
         }
 
         /// <summary>
@@ -307,16 +339,16 @@ namespace Altom.AltDriver
         /// <param name="power" >A value between [-1,1] used for joysticks to indicate how hard the button was pressed. Defaults to <c>1</c>.</param>
         /// <param name="duration">The time measured in seconds from the key press to the key release. Defaults to <c>0.1</c></param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void PressKeys(AltKeyCode[] keyCodes, float power = 1, float duration = 0.1f, bool wait = true)
+        public async Task PressKeys(AltKeyCode[] keyCodes, float power = 1, float duration = 0.1f, bool wait = true)
         {
-            new AltPressKeys(communicationHandler, keyCodes, power, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltPressKeys(communicationHandler, keyCodes, power, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void KeyDown(AltKeyCode keyCode, float power = 1)
+        public Task KeyDown(AltKeyCode keyCode, float power = 1)
         {
-            AltKeyCode[] keyCodes = { keyCode };
-            KeysDown(keyCodes, power);
+            AltKeyCode[] keyCodes = {keyCode};
+            return KeysDown(keyCodes, power);
         }
 
         /// <summary>
@@ -324,26 +356,26 @@ namespace Altom.AltDriver
         /// </summary>
         /// <param name="keyCodes">The key codes of the keys simulated to be down.</param>
         /// <param name="power" >A value between [-1,1] used for joysticks to indicate how hard the button was pressed. Defaults to <c>1</c>.</param>
-        public void KeysDown(AltKeyCode[] keyCodes, float power = 1)
+        public async Task KeysDown(AltKeyCode[] keyCodes, float power = 1)
         {
-            new AltKeysDown(communicationHandler, keyCodes, power).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltKeysDown(communicationHandler, keyCodes, power).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void KeyUp(AltKeyCode keyCode)
+        public Task KeyUp(AltKeyCode keyCode)
         {
-            AltKeyCode[] keyCodes = { keyCode };
-            KeysUp(keyCodes);
+            AltKeyCode[] keyCodes = {keyCode};
+            return KeysUp(keyCodes);
         }
 
         /// <summary>
         /// Simulates multiple keys up action in your game.
         /// </summary>
         /// <param name="keyCodes">The key codes of the keys simulated to be up.</param>
-        public void KeysUp(AltKeyCode[] keyCodes)
+        public async Task KeysUp(AltKeyCode[] keyCodes)
         {
-            new AltKeysUp(communicationHandler, keyCodes).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltKeysUp(communicationHandler, keyCodes).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -352,10 +384,10 @@ namespace Altom.AltDriver
         /// <param name="coordinates">The screen coordinates</param>
         /// <param name="duration">The time measured in seconds to move the mouse from the current mouse position to the set coordinates. Defaults to <c>0.1f</c></param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void MoveMouse(AltVector2 coordinates, float duration = 0.1f, bool wait = true)
+        public async Task MoveMouse(AltVector2 coordinates, float duration = 0.1f, bool wait = true)
         {
-            new AltMoveMouse(communicationHandler, coordinates, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltMoveMouse(communicationHandler, coordinates, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -364,10 +396,10 @@ namespace Altom.AltDriver
         /// <param name="speed">Set how fast to scroll. Positive values will scroll up and negative values will scroll down. Defaults to <code> 1 </code></param>
         /// <param name="duration">The duration of the scroll in seconds. Defaults to <code> 0.1 </code></param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Scroll(float speed = 1, float duration = 0.1f, bool wait = true)
+        public async Task Scroll(float speed = 1, float duration = 0.1f, bool wait = true)
         {
-            new AltScroll(communicationHandler, speed, 0, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltScroll(communicationHandler, speed, 0, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -376,10 +408,10 @@ namespace Altom.AltDriver
         /// <param name="scrollValue">Set how fast to scroll. X is horizontal and Y is vertical. Defaults to <code> 1 </code></param>
         /// <param name="duration">The duration of the scroll in seconds. Defaults to <code> 0.1 </code></param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Scroll(AltVector2 scrollValue, float duration = 0.1f, bool wait = true)
+        public async Task Scroll(AltVector2 scrollValue, float duration = 0.1f, bool wait = true)
         {
-            new AltScroll(communicationHandler, scrollValue.y, scrollValue.x, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltScroll(communicationHandler, scrollValue.y, scrollValue.x, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -389,10 +421,10 @@ namespace Altom.AltDriver
         /// <param name="count">Number of taps</param>
         /// <param name="interval">Interval between taps in seconds</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Tap(AltVector2 coordinates, int count = 1, float interval = 0.1f, bool wait = true)
+        public async Task Tap(AltVector2 coordinates, int count = 1, float interval = 0.1f, bool wait = true)
         {
-            new AltTapCoordinates(communicationHandler, coordinates, count, interval, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltTapCoordinates(communicationHandler, coordinates, count, interval, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -402,10 +434,10 @@ namespace Altom.AltDriver
         /// <param name="count" >Number of clicks.</param>
         /// <param name="interval">Interval between clicks in seconds</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Click(AltVector2 coordinates, int count = 1, float interval = 0.1f, bool wait = true)
+        public async Task Click(AltVector2 coordinates, int count = 1, float interval = 0.1f, bool wait = true)
         {
-            new AltClickCoordinates(communicationHandler, coordinates, count, interval, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltClickCoordinates(communicationHandler, coordinates, count, interval, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -414,130 +446,144 @@ namespace Altom.AltDriver
         /// <param name="acceleration">The linear acceleration of a device.</param>
         /// <param name="duration">How long the rotation will take in seconds. Defaults to <code>0.1<code>.</param>
         /// <param name="wait">If set wait for command to finish. Defaults to <c>True</c>.</param>
-        public void Tilt(AltVector3 acceleration, float duration = 0.1f, bool wait = true)
+        public async Task Tilt(AltVector3 acceleration, float duration = 0.1f, bool wait = true)
         {
-            new AltTilt(communicationHandler, acceleration, duration, wait).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltTilt(communicationHandler, acceleration, duration, wait).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public List<AltObject> GetAllElements(By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<List<AltObject>> GetAllElements(By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
         {
             var listOfObjects = new AltGetAllElements(communicationHandler, cameraBy, cameraValue, enabled).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfObjects;
         }
 
-        public List<AltObjectLight> GetAllElementsLight(By cameraBy = By.NAME, string cameraValue = "", bool enabled = true)
+        public Task<List<AltObjectLight>> GetAllElementsLight(By cameraBy = By.NAME, string cameraValue = "",
+            bool enabled = true)
         {
-            var listOfObjects = new AltGetAllElementsLight(communicationHandler, cameraBy, cameraValue, enabled).Execute();
+            var listOfObjects =
+                new AltGetAllElementsLight(communicationHandler, cameraBy, cameraValue, enabled).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfObjects;
         }
 
-        public void WaitForCurrentSceneToBe(string sceneName, double timeout = 10, double interval = 1)
+        public async Task WaitForCurrentSceneToBe(string sceneName, double timeout = 10, double interval = 1)
         {
-            new AltWaitForCurrentSceneToBe(communicationHandler, sceneName, timeout, interval).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltWaitForCurrentSceneToBe(communicationHandler, sceneName, timeout, interval).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public AltObject WaitForObject(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true, double timeout = 20, double interval = 0.5)
+        public Task<AltObject> WaitForObject(By by, string value, By cameraBy = By.NAME, string cameraValue = "",
+            bool enabled = true, double timeout = 20, double interval = 0.5)
         {
-            var objectFound = new AltWaitForObject(communicationHandler, by, value, cameraBy, cameraValue, enabled, timeout, interval).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
-            return objectFound;
-        }
-
-        public void WaitForObjectNotBePresent(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true, double timeout = 20, double interval = 0.5)
-        {
-            new AltWaitForObjectNotBePresent(communicationHandler, by, value, cameraBy, cameraValue, enabled, timeout, interval).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
-        }
-
-        public AltObject WaitForObjectWhichContains(By by, string value, By cameraBy = By.NAME, string cameraValue = "", bool enabled = true, double timeout = 20, double interval = 0.5)
-        {
-            var objectFound = new AltWaitForObjectWhichContains(communicationHandler, by, value, cameraBy, cameraValue, enabled, timeout, interval).Execute();
+            var objectFound = new AltWaitForObject(communicationHandler, by, value, cameraBy, cameraValue, enabled,
+                timeout, interval).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return objectFound;
         }
 
-        public List<string> GetAllScenes()
+        public async Task WaitForObjectNotBePresent(By by, string value, By cameraBy = By.NAME, string cameraValue = "",
+            bool enabled = true, double timeout = 20, double interval = 0.5)
+        {
+            await new AltWaitForObjectNotBePresent(communicationHandler, by, value, cameraBy, cameraValue, enabled,
+                timeout,
+                interval).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+        }
+
+        public Task<AltObject> WaitForObjectWhichContains(By by, string value, By cameraBy = By.NAME,
+            string cameraValue = "",
+            bool enabled = true, double timeout = 20, double interval = 0.5)
+        {
+            var objectFound = new AltWaitForObjectWhichContains(communicationHandler, by, value, cameraBy, cameraValue,
+                enabled, timeout, interval).Execute();
+            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            return objectFound;
+        }
+
+        public Task<List<string>> GetAllScenes()
         {
             var listOfScenes = new AltGetAllScenes(communicationHandler).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfScenes;
         }
 
-        public List<AltObject> GetAllCameras()
+        public Task<List<AltObject>> GetAllCameras()
         {
             var listOfCameras = new AltGetAllCameras(communicationHandler).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfCameras;
         }
 
-        public List<AltObject> GetAllActiveCameras()
+        public Task<List<AltObject>> GetAllActiveCameras()
         {
             var listOfCameras = new AltGetAllActiveCameras(communicationHandler).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfCameras;
         }
 
-        public AltTextureInformation GetScreenshot(AltVector2 size = default(AltVector2), int screenShotQuality = 100)
+        public Task<AltTextureInformation> GetScreenshot(AltVector2 size = default(AltVector2),
+            int screenShotQuality = 100)
         {
             var textureInformation = new AltGetScreenshot(communicationHandler, size, screenShotQuality).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return textureInformation;
         }
 
-        public AltTextureInformation GetScreenshot(int id, AltColor color, float width, AltVector2 size = default(AltVector2), int screenShotQuality = 100)
+        public Task<AltTextureInformation> GetScreenshot(int id, AltColor color, float width,
+            AltVector2 size = default(AltVector2), int screenShotQuality = 100)
         {
-            var textureInformation = new AltGetHighlightObjectScreenshot(communicationHandler, id, color, width, size, screenShotQuality).Execute();
+            var textureInformation =
+                new AltGetHighlightObjectScreenshot(communicationHandler, id, color, width, size, screenShotQuality)
+                    .Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return textureInformation;
         }
 
-        public AltTextureInformation GetScreenshot(AltVector2 coordinates, AltColor color, float width, out AltObject selectedObject, AltVector2 size = default(AltVector2), int screenShotQuality = 100)
+        // public AltTextureInformation GetScreenshot(AltVector2 coordinates, AltColor color, float width, out AltObject selectedObject, AltVector2 size = default(AltVector2), int screenShotQuality = 100)
+        // {
+        //     var textureInformation = new AltGetHighlightObjectFromCoordinatesScreenshot(communicationHandler, coordinates, color, width, size, screenShotQuality).Execute(out selectedObject);
+        //     communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+        //     return textureInformation;
+        // }
+
+        public async Task GetPNGScreenshot(string path)
         {
-            var textureInformation = new AltGetHighlightObjectFromCoordinatesScreenshot(communicationHandler, coordinates, color, width, size, screenShotQuality).Execute(out selectedObject);
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
-            return textureInformation;
+            await new AltGetPNGScreenshot(communicationHandler, path).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void GetPNGScreenshot(string path)
-        {
-            new AltGetPNGScreenshot(communicationHandler, path).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
-        }
-
-        public List<AltObjectLight> GetAllLoadedScenesAndObjects(bool enabled = true)
+        public Task<List<AltObjectLight>> GetAllLoadedScenesAndObjects(bool enabled = true)
         {
             var listOfObjects = new AltGetAllLoadedScenesAndObjects(communicationHandler, enabled).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return listOfObjects;
         }
 
-        public void SetServerLogging(AltLogger logger, AltLogLevel logLevel)
+        public async Task SetServerLogging(AltLogger logger, AltLogLevel logLevel)
         {
-            new AltSetServerLogging(communicationHandler, logger, logLevel).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltSetServerLogging(communicationHandler, logger, logLevel).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public int BeginTouch(AltVector2 screenPosition)
+        public Task<int> BeginTouch(AltVector2 screenPosition)
         {
             var touchId = new AltBeginTouch(communicationHandler, screenPosition).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return touchId;
         }
 
-        public void MoveTouch(int fingerId, AltVector2 screenPosition)
+        public async Task MoveTouch(int fingerId, AltVector2 screenPosition)
         {
-            new AltMoveTouch(communicationHandler, fingerId, screenPosition).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltMoveTouch(communicationHandler, fingerId, screenPosition).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
-        public void EndTouch(int fingerId)
+        public async Task EndTouch(int fingerId)
         {
-            new AltEndTouch(communicationHandler, fingerId).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltEndTouch(communicationHandler, fingerId).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
 
         /// <summary>
@@ -546,27 +592,28 @@ namespace Altom.AltDriver
         /// </summary>
         /// <param name="coordinates">The screen coordinates</param>
         /// <returns>The UI object hit by event system Raycast, null otherwise</returns>
-        public AltObject FindObjectAtCoordinates(AltVector2 coordinates)
+        public Task<AltObject> FindObjectAtCoordinates(AltVector2 coordinates)
         {
             var objectFound = new AltFindObjectAtCoordinates(communicationHandler, coordinates).Execute();
             communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
             return objectFound;
         }
 
-        public void AddNotificationListener<T>(NotificationType notificationType, Action<T> callback, bool overwrite)
+        public Task AddNotificationListener<T>(NotificationType notificationType, Action<T> callback, bool overwrite)
         {
-            new AddNotificationListener<T>(communicationHandler, notificationType, callback, overwrite).Execute();
+            return new AddNotificationListener<T>(communicationHandler, notificationType, callback, overwrite)
+                .Execute();
         }
 
-        public void RemoveNotificationListener(NotificationType notificationType)
+        public Task RemoveNotificationListener(NotificationType notificationType)
         {
-            new RemoveNotificationListener(communicationHandler, notificationType).Execute();
+            return new RemoveNotificationListener(communicationHandler, notificationType).Execute();
         }
-        
-        public void WaitFor(int seconds)
+
+        public async Task WaitFor(int seconds)
         {
-            new AltWaitFor(communicationHandler, seconds).Execute();
-            communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
+            await new AltWaitFor(communicationHandler, seconds).Execute();
+            await communicationHandler.SleepFor(communicationHandler.GetDelayAfterCommand());
         }
     }
 }

@@ -1,20 +1,25 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltMoveMouse : AltBaseCommand
     {
         AltMoveMouseParams cmdParams;
-        public AltMoveMouse(IDriverCommunication commHandler, AltVector2 coordinates, float duration, bool wait) : base(commHandler)
+
+        public AltMoveMouse(IDriverCommunication commHandler, AltVector2 coordinates, float duration, bool wait) :
+            base(commHandler)
         {
             cmdParams = new AltMoveMouseParams(coordinates, duration, wait);
         }
-        public void Execute()
+
+        public async Task Execute()
         {
-            CommHandler.Send(cmdParams);
-            var data = CommHandler.Recvall<string>(cmdParams);
+            await CommHandler.Send(cmdParams);
+            var data = await CommHandler.Recvall<string>(cmdParams);
             ValidateResponse("Ok", data);
             if (cmdParams.wait)
             {
-                data = CommHandler.Recvall<string>(cmdParams);
+                data = await CommHandler.Recvall<string>(cmdParams);
                 ValidateResponse("Finished", data);
             }
         }

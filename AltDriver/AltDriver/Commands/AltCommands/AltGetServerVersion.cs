@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltGetServerVersion : AltBaseCommand
@@ -5,7 +7,7 @@ namespace Altom.AltDriver.Commands
         public AltGetServerVersion(IDriverCommunication commHandler) : base(commHandler)
         {
         }
-        public string Execute()
+        public Task<string> Execute()
         {
             var cmdParams = new AltGetServerVersionParams();
             CommHandler.Send(cmdParams);

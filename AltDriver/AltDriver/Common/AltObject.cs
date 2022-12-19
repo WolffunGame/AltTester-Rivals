@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Commands;
 
 namespace Altom.AltDriver
@@ -41,18 +42,18 @@ namespace Altom.AltDriver
             this.transformId = transformId;
         }
 
-        public AltObject GetParent()
+        public async Task<AltObject> GetParent()
         {
-            var altObject = new AltFindObject(CommHandler, By.PATH, "//*[@id=" + this.id + "]/..", By.NAME, "", true).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject = await new AltFindObject(CommHandler, By.PATH, "//*[@id=" + this.id + "]/..", By.NAME, "", true).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
         [Obsolete("getParent is deprecated, please use GetParent instead.")]
-        public AltObject getParent()
+        public async Task<AltObject> getParent()
         {
-            var altObject = new AltFindObject(CommHandler, By.PATH, "//*[@id=" + this.id + "]/..", By.NAME, "", true).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltFindObject(CommHandler, By.PATH, "//*[@id=" + this.id + "]/..", By.NAME, "", true).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
         public AltVector2 GetScreenPosition()
@@ -75,37 +76,37 @@ namespace Altom.AltDriver
         {
             return new AltVector3(worldX, worldY, worldZ);
         }
-        public T GetComponentProperty<T>(string componentName, string propertyName, string assemblyName, int maxDepth = 2)
+        public async Task<T> GetComponentProperty<T>(string componentName, string propertyName, string assemblyName, int maxDepth = 2)
         {
-            var propertyValue = new AltGetComponentProperty<T>(CommHandler, componentName, propertyName, assemblyName, maxDepth, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var propertyValue =await new AltGetComponentProperty<T>(CommHandler, componentName, propertyName, assemblyName, maxDepth, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return propertyValue;
         }
 
-        public void SetComponentProperty(string componentName, string propertyName, object value, string assemblyName)
+        public async void SetComponentProperty(string componentName, string propertyName, object value, string assemblyName)
         {
-            new AltSetComponentProperty(CommHandler, componentName, propertyName, value, assemblyName, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+           await new AltSetComponentProperty(CommHandler, componentName, propertyName, value, assemblyName, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
         }
 
-        public T CallComponentMethod<T>(string componentName, string methodName, string assemblyName, object[] parameters, string[] typeOfParameters = null)
+        public async Task<T> CallComponentMethod<T>(string componentName, string methodName, string assemblyName, object[] parameters, string[] typeOfParameters = null)
         {
-            var result = new AltCallComponentMethod<T>(CommHandler, componentName, methodName, parameters, typeOfParameters, assemblyName, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var result =await new AltCallComponentMethod<T>(CommHandler, componentName, methodName, parameters, typeOfParameters, assemblyName, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return result;
         }
 
-        public string GetText()
+        public async Task<string> GetText()
         {
-            var text = new AltGetText(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var text =await new AltGetText(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return text;
         }
 
-        public AltObject SetText(string text, bool submit = false)
+        public async Task<AltObject> SetText(string text, bool submit = false)
         {
-            var altObject = new AltSetText(CommHandler, this, text, submit).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltSetText(CommHandler, this, text, submit).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
@@ -116,38 +117,38 @@ namespace Altom.AltDriver
         /// <param name="interval">Interval between clicks in seconds</param>
         /// <param name="wait">Wait for command to finish</param>
         /// <returns>The clicked object</returns>
-        public AltObject Click(int count = 1, float interval = 0.1f, bool wait = true)
+        public async Task<AltObject> Click(int count = 1, float interval = 0.1f, bool wait = true)
         {
-            var altObject = new AltClickElement(CommHandler, this, count, interval, wait).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltClickElement(CommHandler, this, count, interval, wait).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public AltObject PointerUpFromObject()
+        public async Task<AltObject> PointerUpFromObject()
         {
-            var altObject = new AltPointerUpFromObject(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltPointerUpFromObject(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public AltObject PointerDownFromObject()
+        public async Task<AltObject> PointerDownFromObject()
         {
-            var altObject = new AltPointerDownFromObject(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltPointerDownFromObject(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public AltObject PointerEnterObject()
+        public async Task<AltObject> PointerEnterObject()
         {
-            var altObject = new AltPointerEnterObject(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltPointerEnterObject(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public AltObject PointerExitObject()
+        public async Task<AltObject> PointerExitObject()
         {
-            var altObject = new AltPointerExitObject(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltPointerExitObject(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
@@ -158,38 +159,38 @@ namespace Altom.AltDriver
         /// <param name="interval">Interval in seconds</param>
         /// <param name="wait">Wait for command to finish</param>
         /// <returns>The tapped object</returns>
-        public AltObject Tap(int count = 1, float interval = 0.1f, bool wait = true)
+        public async Task<AltObject> Tap(int count = 1, float interval = 0.1f, bool wait = true)
         {
-            var altObject = new AltTapElement(CommHandler, this, count, interval, wait).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltTapElement(CommHandler, this, count, interval, wait).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public System.Collections.Generic.List<AltComponent> GetAllComponents()
+        public async Task<System.Collections.Generic.List<AltComponent>> GetAllComponents()
         {
-            var altObject = new AltGetAllComponents(CommHandler, this).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltGetAllComponents(CommHandler, this).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public System.Collections.Generic.List<AltProperty> GetAllProperties(AltComponent altComponent, AltPropertiesSelections altPropertiesSelections = AltPropertiesSelections.ALLPROPERTIES)
+        public async Task<System.Collections.Generic.List<AltProperty>> GetAllProperties(AltComponent altComponent, AltPropertiesSelections altPropertiesSelections = AltPropertiesSelections.ALLPROPERTIES)
         {
-            var altObject = new AltGetAllProperties(CommHandler, altComponent, this, altPropertiesSelections).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltGetAllProperties(CommHandler, altComponent, this, altPropertiesSelections).Execute();
+           await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public System.Collections.Generic.List<AltProperty> GetAllFields(AltComponent altComponent, AltFieldsSelections altFieldsSelections = AltFieldsSelections.ALLFIELDS)
+        public async Task<System.Collections.Generic.List<AltProperty>> GetAllFields(AltComponent altComponent, AltFieldsSelections altFieldsSelections = AltFieldsSelections.ALLFIELDS)
         {
-            var altObject = new AltGetAllFields(CommHandler, altComponent, this, altFieldsSelections).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltGetAllFields(CommHandler, altComponent, this, altFieldsSelections).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
 
-        public System.Collections.Generic.List<string> GetAllMethods(AltComponent altComponent, AltMethodSelection methodSelection = AltMethodSelection.ALLMETHODS)
+        public async Task<System.Collections.Generic.List<string>> GetAllMethods(AltComponent altComponent, AltMethodSelection methodSelection = AltMethodSelection.ALLMETHODS)
         {
-            var altObject = new AltGetAllMethods(CommHandler, altComponent, methodSelection).Execute();
-            CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
+            var altObject =await new AltGetAllMethods(CommHandler, altComponent, methodSelection).Execute();
+            await CommHandler.SleepFor(CommHandler.GetDelayAfterCommand());
             return altObject;
         }
     }

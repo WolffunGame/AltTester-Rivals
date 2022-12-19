@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Altom.AltDriver.Notifications;
 
 namespace Altom.AltDriver.Commands
@@ -11,11 +12,11 @@ namespace Altom.AltDriver.Commands
         {
             this.cmdParams = new DeactivateNotification(notificationType);
         }
-        public void Execute()
+        public async Task Execute()
         {
             this.CommHandler.RemoveNotificationListener(cmdParams.NotificationType);
-            this.CommHandler.Send(this.cmdParams);
-            var data = this.CommHandler.Recvall<string>(this.cmdParams);
+            await this.CommHandler.Send(this.cmdParams);
+            var data = await this.CommHandler.Recvall<string>(this.cmdParams);
             ValidateResponse("Ok", data);
         }
     }

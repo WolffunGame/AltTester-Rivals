@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltBeginTouch : AltBaseCommand
@@ -8,7 +10,7 @@ namespace Altom.AltDriver.Commands
         {
             this.cmdParams = new AltBeginTouchParams(coordinates);
         }
-        public int Execute()
+        public Task<int> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<int>(cmdParams);  //finger id

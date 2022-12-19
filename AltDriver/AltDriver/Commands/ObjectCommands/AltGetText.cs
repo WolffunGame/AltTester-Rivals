@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltGetText : AltBaseCommand
@@ -9,7 +11,7 @@ namespace Altom.AltDriver.Commands
             cmdParams = new AltGetTextParams(altObject);
         }
 
-        public string Execute()
+        public Task<string> Execute()
         {
             CommHandler.Send(cmdParams);
             return CommHandler.Recvall<string>(cmdParams);

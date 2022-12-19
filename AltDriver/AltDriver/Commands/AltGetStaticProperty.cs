@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Altom.AltDriver.Commands
@@ -10,10 +11,10 @@ namespace Altom.AltDriver.Commands
         {
             cmdParams = new AltGetObjectComponentPropertyParams(null, componentName, propertyName, assemblyName, maxDepth);
         }
-        public T Execute()
+        public async Task<T> Execute()
         {
-            CommHandler.Send(cmdParams);
-            T data = CommHandler.Recvall<T>(cmdParams);
+            await CommHandler.Send(cmdParams);
+            T data = await CommHandler.Recvall<T>(cmdParams);
             return data;
         }
     }

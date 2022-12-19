@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 
 namespace Altom.AltDriver.Commands
@@ -21,7 +22,7 @@ namespace Altom.AltDriver.Commands
             this.interval = interval;
             findObject = new AltFindObjectWhichContains(CommHandler, by, value, cameraBy, cameraValue, enabled);
         }
-        public AltObject Execute()
+        public async Task<AltObject> Execute()
         {
             double time = 0;
             AltObject altElement = null;
@@ -31,12 +32,12 @@ namespace Altom.AltDriver.Commands
             {
                 try
                 {
-                    altElement = findObject.Execute();
+                    altElement = await findObject.Execute();
                     break;
                 }
                 catch (NotFoundException)
                 {
-                    Thread.Sleep(System.Convert.ToInt32(interval * 1000));
+                    await Task.Delay(System.Convert.ToInt32(interval * 1000));
                     time += interval;
                 }
             }

@@ -1,27 +1,32 @@
+using System.Threading.Tasks;
+
 namespace Altom.AltDriver.Commands
 {
     public class AltClickElement : AltCommandReturningAltElement
     {
         AltClickElementParams cmdParams;
 
-        public AltClickElement(IDriverCommunication commHandler, AltObject altObject, int count, float interval, bool wait) : base(commHandler)
+        public AltClickElement(IDriverCommunication commHandler, AltObject altObject, int count, float interval,
+            bool wait) : base(commHandler)
         {
             cmdParams = new AltClickElementParams(
-            altObject,
-             count,
-             interval,
-             wait);
+                altObject,
+                count,
+                interval,
+                wait);
         }
-        public AltObject Execute()
+
+        public async Task<AltObject> Execute()
         {
-            CommHandler.Send(cmdParams);
-            var element = ReceiveAltObject(cmdParams);
+            await CommHandler.Send(cmdParams);
+            var element = await ReceiveAltObject(cmdParams);
 
             if (cmdParams.wait)
             {
-                var data = CommHandler.Recvall<string>(cmdParams);
+                var data = await CommHandler.Recvall<string>(cmdParams);
                 ValidateResponse("Finished", data);
             }
+
             return element;
         }
     }

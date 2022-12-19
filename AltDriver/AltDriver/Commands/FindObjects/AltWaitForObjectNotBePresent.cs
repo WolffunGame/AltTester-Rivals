@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 
 namespace Altom.AltDriver.Commands
@@ -21,7 +22,7 @@ namespace Altom.AltDriver.Commands
             if (timeout <= 0) throw new ArgumentOutOfRangeException("timeout");
             if (interval <= 0) throw new ArgumentOutOfRangeException("interval");
         }
-        public void Execute()
+        public async Task Execute()
         {
             double time = 0;
             bool found = false;
@@ -33,9 +34,9 @@ namespace Altom.AltDriver.Commands
                 found = false;
                 try
                 {
-                    altElement = findObject.Execute();
+                    altElement = await findObject.Execute();
                     found = true;
-                    Thread.Sleep(System.Convert.ToInt32(interval * 1000));
+                    await Task.Delay(System.Convert.ToInt32(interval * 1000));
                     time += interval;
 
                 }

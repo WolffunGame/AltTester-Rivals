@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using Altom.AltDriver.Logging;
 
 namespace Altom.AltDriver.Commands
@@ -6,14 +7,16 @@ namespace Altom.AltDriver.Commands
     {
         private readonly AltSetServerLoggingParams cmdParams;
 
-        public AltSetServerLogging(IDriverCommunication commHandler, AltLogger logger, AltLogLevel logLevel) : base(commHandler)
+        public AltSetServerLogging(IDriverCommunication commHandler, AltLogger logger, AltLogLevel logLevel) : base(
+            commHandler)
         {
             this.cmdParams = new AltSetServerLoggingParams(logger, logLevel);
         }
-        public void Execute()
+
+        public async Task Execute()
         {
-            this.CommHandler.Send(this.cmdParams);
-            var data = this.CommHandler.Recvall<string>(this.cmdParams);
+            await this.CommHandler.Send(this.cmdParams);
+            var data = await this.CommHandler.Recvall<string>(this.cmdParams);
             ValidateResponse("Ok", data);
         }
     }
