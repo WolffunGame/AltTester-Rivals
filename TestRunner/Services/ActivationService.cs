@@ -8,7 +8,8 @@ namespace TestRunner.Services
 {
     public class ActivationService : WebSocketBehavior
     {
-        private const string ActivateEvent = "activation";
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+        
         public const string TestParentSample = "Wolffun.Automation.Tests.TestLoginNotHaveTutorial";
 
         private string _host = "127.0.0.1";
@@ -23,7 +24,7 @@ namespace TestRunner.Services
 
             if (message.Status == ActivationProgress.Connecting)
             {
-                Console.WriteLine($"Device {message.DeviceName} is connecting to server");
+                Logger.Info($"Device {message.DeviceName} is connecting to server");
 
                 PoolPort.Add(message.DeviceName, out var port);
                 var data = new ActivationMessage()
@@ -35,7 +36,7 @@ namespace TestRunner.Services
                 var json = JsonConvert.SerializeObject(data);
                 Send(json);
 
-                Console.WriteLine("Sent: " + json);
+                Logger.Info("Sent: " + json);
             }
             else if (message.Status == ActivationProgress.Starting)
             {
@@ -48,14 +49,21 @@ namespace TestRunner.Services
 
                 var json = JsonConvert.SerializeObject(data);
                 Send(json);
-                Console.WriteLine("Sent: " + json);
+                Logger.Info("Sent: " + json);
 
                 //wait for 2 seconds
-                System.Threading.Thread.Sleep(2000);
+                //System.Threading.Thread.Sleep(2000);
 
-                Console.WriteLine(
+                Logger.Info(
                     $"Start test at device: {data.DeviceName}, port: {data.DevicePort}, host: {data.DeviceHost}, status: {data.Status}, test: {TestParentSample}");
+                //Start run on main thread
                 TestRunner.RunTestByParent(TestParentSample);
+            }else if (message.Status == ActivationProgress.Stopping)
+            {
+                PoolPort.Remove(message.DeviceName);
+        
+                Logger.Info($"Device {message.DeviceName} is finished");
+                TestRunner.StopTests();
             }
         }
 
@@ -91,6 +99,7 @@ namespace TestRunner.Services
     {
         Idle = 0,
         Connecting = 1,
-        Starting = 2
+        Starting = 2,
+        Stopping = 3
     }
 }

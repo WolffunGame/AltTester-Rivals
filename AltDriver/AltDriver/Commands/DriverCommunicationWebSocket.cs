@@ -341,7 +341,7 @@ namespace Altom.AltDriver.Commands
 
         public void SleepFor(float time)
         {
-            Thread.Sleep(System.Convert.ToInt32(time * 1000));
+            Thread.Sleep((int)(time * 1000));
         }
     }
 }

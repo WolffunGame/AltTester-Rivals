@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Threading;
 using Altom.AltDriver.Logging;
 
@@ -36,7 +37,7 @@ namespace Altom.AltDriver.Commands
                 }
                 catch (NotFoundException)
                 {
-                    Thread.Sleep(System.Convert.ToInt32(interval * 1000));
+                    Thread.Sleep((int)interval * 1000);
                     time += interval;
                 }
             }

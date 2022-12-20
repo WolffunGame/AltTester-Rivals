@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Xml;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
@@ -16,7 +17,7 @@ namespace TestRunner
 
     public class TestRunner
     {
-        private static readonly NLog.Logger logger = DriverLogManager.Instance.GetCurrentClassLogger();
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         public enum TestRunMode
         {
@@ -32,12 +33,11 @@ namespace TestRunner
         const string NUNIT_ASSEMBLY_NAME = "nunit.framework";
 
         public static TestRunDelegate CallRunDelegate = new TestRunDelegate(showProgressBar);
-
-
-        public static void RunTests(List<AltMyTest> myTests, TestRunMode testMode)
+        
+        public static void RunTests(List<AltMyTest> myTests, TestRunMode testMode, int times = 1)
         {
-            logger.Info("Started running test");
-            Console.WriteLine("Started running test");
+            Logger.Info("Started running test");
+
             System.Reflection.Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 
             List<string> assemblyList = new List<string>();
@@ -47,6 +47,12 @@ namespace TestRunner
                 new NUnit.Framework.Api.NUnitTestAssemblyRunner(new NUnit.Framework.Api.DefaultTestAssemblyBuilder());
             progress = 0;
             total = filters.Filters.Count;
+            //log all tests
+            Logger.Info($"Tests to be run: ${string.Join(",", myTests.Select(x => x.TestName))}");
+
+            //create a thread from thread pool to run tests
+            
+
             TNode xmlContent = new TNode("Test");
             foreach (var assembly in assemblies)
             {
@@ -68,14 +74,27 @@ namespace TestRunner
                 while (runTestThread.IsAlive)
                 {
                     if (previousProgress == progress) continue;
-                    logger.Info("Running test: " + testName + " " + progress + "/" + total);
-                    Console.WriteLine("Running test: " + testName + " " + progress + "/" + total);
+                    Logger.Info("Running test: " + testName + " " + progress + "/" + total);
                     previousProgress = progress;
                 }
 
+                Logger.Info("Test Thread Alive: " + runTestThread.IsAlive);
                 runTestThread.Join();
             }
+
             createXMLReport($"test-report.xml", xmlContent);
+        }
+
+        public static void RunTests(int times)
+        {
+        }
+
+        public static void StopTests()
+        {
+            Logger.Info("Stop running test");
+            var testAssemblyRunner =
+                new NUnit.Framework.Api.NUnitTestAssemblyRunner(new NUnit.Framework.Api.DefaultTestAssemblyBuilder());
+            testAssemblyRunner.StopRun(true);
         }
 
 
@@ -205,7 +224,7 @@ namespace TestRunner
                 {
                     ReferenceLoopHandling = ReferenceLoopHandling.Ignore
                 });
-            logger.Debug("Serialized tests: " + serializeTests);
+            Logger.Debug("Serialized tests: " + serializeTests);
             // UnityEditor.EditorPrefs.SetString("tests", serializeTests);
             //
             // AltTesterEditorWindow.ReportTestPassed = numberOfTestPassed;
@@ -215,11 +234,11 @@ namespace TestRunner
             // AltTesterEditorWindow.TimeTestRan = totalTime;
             if (passed)
             {
-                logger.Debug("All test passed");
+                Logger.Debug("All test passed");
             }
             else
             {
-                logger.Debug("Test failed");
+                Logger.Debug("Test failed");
             }
         }
 
@@ -525,8 +544,6 @@ namespace TestRunner
 
             if (createReport)
                 createXMLReport(reportPath, xmlContent);
-
-            //UnityEditor.EditorApplication.Exit(failed > 0 ? 1 : 0);
         }
 
         private static void addTestsToFilter(bool runAllTests, OrFilter filter, Assembly[] assemblies,
@@ -672,7 +689,7 @@ namespace TestRunner
 
             return children;
         }
-        
+
         public static void RunTestByParent(string parentName)
         {
             var tests = GetTestsByParent(parentName);

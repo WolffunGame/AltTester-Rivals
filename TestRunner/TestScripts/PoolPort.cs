@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,11 +10,21 @@ namespace Wolffun.Automation.Tests
     /// </summary>
     public static class PoolPort
     {
-        private static readonly Dictionary<string, PortData> Ports = new Dictionary<string, PortData>();
-        private static int startPort = 10000;
+        private static readonly ConcurrentDictionary<string, PortData> Ports = new ConcurrentDictionary<string, PortData>();
+        private static int _startPort = 10000;
+        private const string TestDevice = "TestDevice";
 
         public static void Add(string testDeviceName, out int newPort)
         {
+            if(Ports.ContainsKey(TestDevice))
+            {
+                newPort = Ports[TestDevice].Port;
+                
+                Ports.AddOrUpdate(testDeviceName, Ports[TestDevice], (key, value) => Ports[TestDevice]);
+                Ports.TryRemove(TestDevice, out _);
+                return;
+            }
+            
             if (Ports.ContainsKey(testDeviceName))
             {
                 newPort = Ports[testDeviceName].Port;
@@ -23,14 +34,18 @@ namespace Wolffun.Automation.Tests
             int port = -1;
             if (Ports.Count == 0)
             {
-                port = startPort;
+                port = _startPort;
             }
             else
             {
                 port = Ports.Values.Max(x => x.Port) + 1;
             }
 
-            Ports.Add(testDeviceName, new PortData(port));
+            var added = Ports.TryAdd(testDeviceName, new PortData(port));
+            if (!added)
+            {
+                throw new Exception("Failed to add port to pool");
+            }
             newPort = port;
         }
         
@@ -46,7 +61,12 @@ namespace Wolffun.Automation.Tests
 
         public static void Remove(string testDeviceName)
         {
-            Ports.Remove(testDeviceName);
+            if (!Ports.ContainsKey(testDeviceName))
+            {
+                throw new Exception("Test device name not found");
+            }
+
+            Ports[testDeviceName].IsRunningTest = false;
         }
 
         public static int GetAvailablePort()
@@ -66,8 +86,8 @@ namespace Wolffun.Automation.Tests
             {
                 if(Ports.Count == 0)
                 {
-                    port = startPort;
-                    startPort++;
+                    port = _startPort;
+                    _startPort++;
                 }
                 else
                 {
@@ -75,6 +95,7 @@ namespace Wolffun.Automation.Tests
                 }
                 
                 var newPort = new PortData() { Port = port, IsRunningTest = true };
+                Ports.TryAdd(TestDevice, newPort);
                 
             }
             

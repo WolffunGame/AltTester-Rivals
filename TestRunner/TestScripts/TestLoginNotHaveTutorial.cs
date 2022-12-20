@@ -1,16 +1,16 @@
-using System;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
 using NUnit.Framework;
-using TestRunner.Services;
 
 namespace Wolffun.Automation.Tests
 {
-    [Timeout(1000)]
+    [TestFixture]
     public class TestLoginNotHaveTutorial
     {
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         private AltDriver altDriver;
         private readonly int _port = -1;
+        
 
         [OneTimeSetUp]
         public void SetUp()
@@ -19,7 +19,7 @@ namespace Wolffun.Automation.Tests
             altDriver = new AltDriver(host: TestsHelper.GetAltDriverHost(),
                 port: port,
                 enableLogging: true);
-            Console.WriteLine("AltDriver started on port: " + port);
+            Logger.Info("AltDriver started on port: " + port);
             DriverLogManager.SetMinLogLevel(AltLogger.Console, AltLogLevel.Info);
             //DriverLogManager.SetMinLogLevel(AltLogger.Unity, AltLogLevel.Info);
         }
@@ -37,13 +37,13 @@ namespace Wolffun.Automation.Tests
 
             altDriver.SetCommandResponseTimeout(60);
             
-            Console.WriteLine("Loading level");
+            Logger.Info("Loading level");
         }
 
         [Test]
         public void Test1CheckCurrentSceneIsLogin()
         {
-            Console.WriteLine("Test1CheckCurrentSceneIsLogin");
+            Logger.Info("Test1CheckCurrentSceneIsLogin");
             altDriver.WaitForCurrentSceneToBe(Constant.LoginScene);
             Assert.AreEqual(Constant.LoginScene, altDriver.GetCurrentScene());
         }
@@ -74,26 +74,33 @@ namespace Wolffun.Automation.Tests
         [Test]
         public void Test4CurrentSceneIsNotHome()
         {
-            altDriver.WaitForObject(By.PATH, "//Control PC", timeout: 50);
-            Assert.That(altDriver.GetCurrentScene(), Is.Not.EqualTo(Constant.HomeWithoutLobbyScene));
-            Assert.That(altDriver.GetCurrentScene(), Is.Not.EqualTo(Constant.LoadingScene));
+            altDriver.WaiForCurrentSceneIsNot(new[] {Constant.HomeWithoutLobbyScene, Constant.LoadingScene}, 50, 5);
+            Assert.AreNotEqual(Constant.HomeWithoutLobbyScene, altDriver.GetCurrentScene());
+            Assert.AreNotEqual(Constant.LoadingScene, altDriver.GetCurrentScene());
         }
 
         [Test]
         public void Test5LoseAnyGame()
         {
-            var leaveButton = altDriver.WaitForObject(By.PATH, "//BaseCanvas/BtnLeave", timeout: 300);
+            Logger.Info("Test5LoseAnyGame");
+            altDriver.WaiForCurrentSceneIsNot(new[] {Constant.HomeWithoutLobbyScene, Constant.LoadingScene});
+            var leaveButton = altDriver.WaitForObject(By.PATH, "//BaseCanvas/BtnLeave", timeout: 300, interval: 5);
             altDriver.WaitFor(5);
             leaveButton.Click();
+        }
+        
+        [Test]
+        public void Test6CurrentSceneIsBattleEndReward()
+        {
             altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
             Assert.AreEqual(Constant.BattleEndRewardScene, altDriver.GetCurrentScene());
         }
 
         [Test]
-        public void Test6ClickOnContinueButton()
+        public void Test7ClickOnContinueButton()
         {
-            altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
-            altDriver.WaitFor(4);
+            //altDriver.WaitForCurrentSceneToBe(Constant.BattleEndRewardScene);
+            altDriver.WaitFor(6);
             var continueButton = altDriver.FindObject(By.PATH, "/Canvas/battle_reward/continue_button");
             continueButton.Click();
             altDriver.WaitForCurrentSceneToBe(Constant.HomeWithoutLobbyScene);

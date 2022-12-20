@@ -7,7 +7,7 @@ using NLog.Targets;
 
 namespace Altom.AltDriver.Logging
 {
-    public class DriverLogManager
+    public static class DriverLogManager
     {
         const string LOGSFILEPATH = "./AltTester.log";
 

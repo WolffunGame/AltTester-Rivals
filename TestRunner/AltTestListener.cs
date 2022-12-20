@@ -1,10 +1,11 @@
 //using Altom.AltTesterEditor.Logging;
 
+
 namespace TestRunner
 {
     public class AltTestRunListener : NUnit.Framework.Interfaces.ITestListener
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly TestRunDelegate callRunDelegate;
 
@@ -26,14 +27,14 @@ namespace TestRunner
         {
             if (!result.Test.IsSuite)
             {
-                logger.Info("==============> TEST " + result.Test.FullName + ": " +
+                Logger.Info("==============> TEST " + result.Test.FullName + ": " +
                             result.ResultState.ToString().ToUpper());
                 if (result.ResultState != NUnit.Framework.Interfaces.ResultState.Success)
                 {
-                    logger.Error(result.Message + System.Environment.NewLine + result.StackTrace);
+                    Logger.Error(result.Message + System.Environment.NewLine + result.StackTrace);
                 }
 
-                logger.Info("======================================================");
+                Logger.Info("======================================================");
             }
         }
 
