@@ -11,8 +11,8 @@ namespace TestRunner.Services
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
         
         public const string TestParentSample = "Wolffun.Automation.Tests.TestLoginNotHaveTutorial";
-
-        private string _host = "127.0.0.1";
+        private readonly TestRunner _testRunner = new TestRunner();
+        //private string _host = "127.0.0.1";
 
         protected override void OnMessage(MessageEventArgs e)
         {
@@ -26,10 +26,10 @@ namespace TestRunner.Services
             {
                 Logger.Info($"Device {message.DeviceName} is connecting to server");
 
-                PoolPort.Add(message.DeviceName, out var port);
+                PoolConnectionInfo.Add(message.DeviceName, message.DeviceHost, out var port);
                 var data = new ActivationMessage()
                 {
-                    DeviceHost = _host, DevicePort = port, DeviceName = message.DeviceName,
+                    DeviceHost = message.DeviceHost, DevicePort = port, DeviceName = message.DeviceName,
                     Status = ActivationProgress.Connecting
                 };
 
@@ -42,7 +42,7 @@ namespace TestRunner.Services
             {
                 var data = new ActivationMessage()
                 {
-                    DeviceHost = _host, DevicePort = PoolPort.GetPortByName(message.DeviceName),
+                    DeviceHost = message.DeviceHost, DevicePort = PoolConnectionInfo.GetPortByName(message.DeviceName),
                     DeviceName = message.DeviceName,
                     Status = ActivationProgress.Starting
                 };
@@ -56,14 +56,16 @@ namespace TestRunner.Services
 
                 Logger.Info(
                     $"Start test at device: {data.DeviceName}, port: {data.DevicePort}, host: {data.DeviceHost}, status: {data.Status}, test: {TestParentSample}");
-                //Start run on main thread
-                TestRunner.RunTestByParent(TestParentSample);
+                //TestRunner.RunTestByParent(TestParentSample);
+                _testRunner.RunTestByParent(TestParentSample);
+                _testRunner.OnTestRunFinished = s => { Logger.Info($"Finished test on device {message.DeviceName} ,test progress: {s}"); };
+
             }else if (message.Status == ActivationProgress.Stopping)
             {
-                PoolPort.Remove(message.DeviceName);
+                PoolConnectionInfo.Remove(message.DeviceName);
         
                 Logger.Info($"Device {message.DeviceName} is finished");
-                TestRunner.StopTests();
+                _testRunner.StopTests();
             }
         }
 

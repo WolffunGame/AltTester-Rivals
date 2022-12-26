@@ -3,11 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using Altom.AltDriver;
-using Altom.AltDriver.Logging;
 using Newtonsoft.Json;
+using NUnit.Framework.Api;
 using NUnit.Framework.Interfaces;
 using NUnit.Framework.Internal.Filters;
 
@@ -27,23 +27,25 @@ namespace TestRunner
         }
 
         //This are for progressBar when are run
-        private static float progress;
-        private static float total;
-        private static string testName;
+        private float progress;
+        private float total;
+        private string testName;
         const string NUNIT_ASSEMBLY_NAME = "nunit.framework";
-
-        public static TestRunDelegate CallRunDelegate = new TestRunDelegate(showProgressBar);
         
-        public static void RunTests(List<AltMyTest> myTests, TestRunMode testMode, int times = 1)
+        private NUnitTestAssemblyRunner _testAssemblyRunner;
+        //result
+        public Action<string> OnTestRunFinished;
+
+        public void RunTests(List<AltMyTest> myTests, TestRunMode testMode)
         {
             Logger.Info("Started running test");
 
             System.Reflection.Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
 
             List<string> assemblyList = new List<string>();
-            var filters = addTestToBeRun(myTests, testMode, out assemblyList);
-            NUnit.Framework.Interfaces.ITestListener listener = new AltTestRunListener(CallRunDelegate);
-            var testAssemblyRunner =
+            var filters = AddTestToBeRun(myTests, testMode, out assemblyList);
+            NUnit.Framework.Interfaces.ITestListener listener = new AltTestRunListener(ShowProgressBar);
+            _testAssemblyRunner =
                 new NUnit.Framework.Api.NUnitTestAssemblyRunner(new NUnit.Framework.Api.DefaultTestAssemblyBuilder());
             progress = 0;
             total = filters.Filters.Count;
@@ -52,18 +54,17 @@ namespace TestRunner
 
             //create a thread from thread pool to run tests
             
-
             TNode xmlContent = new TNode("Test");
             foreach (var assembly in assemblies)
             {
                 if (!assemblyList.Contains(assembly.GetName().Name))
                     continue;
 
-                testAssemblyRunner.Load(assembly, new Dictionary<string, object>());
+                _testAssemblyRunner.Load(assembly, new Dictionary<string, object>());
                 //run test thread
                 var runTestThread = new System.Threading.Thread(() =>
                 {
-                    var result = testAssemblyRunner.Run(listener, filters);
+                    var result = _testAssemblyRunner.Run(listener, filters);
                     result.AddToXml(xmlContent, true);
                     setTestStatus(result);
                 });
@@ -82,29 +83,41 @@ namespace TestRunner
                 runTestThread.Join();
             }
 
-            createXMLReport($"test-report.xml", xmlContent);
+            CreateXmlReport($"test-report.xml", xmlContent);
+            
+            OnTestRunFinished?.Invoke($"{progress}/{total}");
         }
 
-        public static void RunTests(int times)
+        public void RunTests(List<AltMyTest> myTests, TestRunMode testMode, int numberOfRun)
         {
+            Task runTask = new Task(() =>
+            {
+                RunTests(myTests, testMode);
+            });
+            //run task sequencelly for number of run
+            for (int i = 0; i < numberOfRun; i++)
+            {
+                runTask.Start();
+                runTask.Wait();
+            }
         }
 
-        public static void StopTests()
+        public void StopTests()
         {
             Logger.Info("Stop running test");
-            var testAssemblyRunner =
-                new NUnit.Framework.Api.NUnitTestAssemblyRunner(new NUnit.Framework.Api.DefaultTestAssemblyBuilder());
-            testAssemblyRunner.StopRun(true);
+            _testAssemblyRunner.StopRun(true);
+            
+            OnTestRunFinished?.Invoke($"Finished at {progress}/{total}");
         }
 
 
-        private static void showProgressBar(string name)
+        private void ShowProgressBar(string name)
         {
             progress++;
             testName = name;
         }
 
-        private void setTestStatus(List<NUnit.Framework.Interfaces.ITestResult> results, List<AltMyTest> tests)
+        private void SetTestStatus(List<NUnit.Framework.Interfaces.ITestResult> results, List<AltMyTest> tests)
         {
             bool passed = true;
             int numberOfTestPassed = 0;
@@ -242,7 +255,7 @@ namespace TestRunner
             }
         }
 
-        private static NUnit.Framework.Internal.Filters.OrFilter addTestToBeRun(List<AltMyTest> tests,
+        private static NUnit.Framework.Internal.Filters.OrFilter AddTestToBeRun(List<AltMyTest> tests,
             TestRunMode testMode,
             out List<string> assemblyList)
         {
@@ -372,11 +385,11 @@ namespace TestRunner
                 var testSuite =
                     (NUnit.Framework.Internal.TestSuite) new NUnit.Framework.Api.DefaultTestAssemblyBuilder().Build(
                         assembly, new Dictionary<string, object>());
-                var coroutine = addTestSuiteToMyTestCoroutine(testSuite, myTests, assembly.GetName().Name);
+                var coroutine = AddTestSuiteToMyTestCoroutine(testSuite, myTests, assembly.GetName().Name);
                 yield return coroutine;
             }
 
-            setCorrectCheck(myTests);
+            SetCorrectCheck(myTests);
             // AltTesterEditorWindow.EditorConfiguration.MyTests = myTests;
             // AltTesterEditorWindow.loadTestCompleted = true;
             // AltTesterEditorWindow.Window.Repaint();
@@ -396,15 +409,15 @@ namespace TestRunner
                 var testSuite =
                     (NUnit.Framework.Internal.TestSuite) new NUnit.Framework.Api.DefaultTestAssemblyBuilder().Build(
                         assembly, new Dictionary<string, object>());
-                addTestSuiteToMyTest(testSuite, myTests, assembly.GetName().Name);
+                AddTestSuiteToMyTest(testSuite, myTests, assembly.GetName().Name);
             }
 
-            setCorrectCheck(myTests);
+            SetCorrectCheck(myTests);
             return myTests;
         }
 
 
-        private static void setCorrectCheck(List<AltMyTest> myTests)
+        private static void SetCorrectCheck(List<AltMyTest> myTests)
         {
             bool classCheck = true;
             bool assemblyCheck = true;
@@ -457,24 +470,24 @@ namespace TestRunner
             }
         }
 
-        private static IEnumerator addTestSuiteToMyTestCoroutine(NUnit.Framework.Interfaces.ITest testSuite,
+        private static IEnumerator AddTestSuiteToMyTestCoroutine(NUnit.Framework.Interfaces.ITest testSuite,
             List<AltMyTest> newMyTests, string assembly)
         {
             addCurrentSuiteToTestList(testSuite, newMyTests, assembly);
             foreach (var test in testSuite.Tests)
             {
-                var coroutine = addTestSuiteToMyTestCoroutine(test, newMyTests, assembly);
+                var coroutine = AddTestSuiteToMyTestCoroutine(test, newMyTests, assembly);
                 yield return coroutine;
             }
         }
 
-        private static void addTestSuiteToMyTest(NUnit.Framework.Interfaces.ITest testSuite, List<AltMyTest> newMyTests,
+        private static void AddTestSuiteToMyTest(NUnit.Framework.Interfaces.ITest testSuite, List<AltMyTest> newMyTests,
             string assembly)
         {
             addCurrentSuiteToTestList(testSuite, newMyTests, assembly);
             foreach (var test in testSuite.Tests)
             {
-                addTestSuiteToMyTest(test, newMyTests, assembly);
+                AddTestSuiteToMyTest(test, newMyTests, assembly);
             }
         }
 
@@ -524,11 +537,11 @@ namespace TestRunner
                 new NUnit.Framework.Api.NUnitTestAssemblyRunner(new NUnit.Framework.Api.DefaultTestAssemblyBuilder());
             NUnit.Framework.Interfaces.ITestListener listener = new AltTestRunListener(null);
             System.Reflection.Assembly[] assemblies = System.AppDomain.CurrentDomain.GetAssemblies();
-            var allTestsFoundInProject = setUpTestsForCommandLineRun();
+            var allTestsFoundInProject = SetUpTestsForCommandLineRun();
 
-            checkCommandLineArguments(arguments, ref runAllTests, ref createReport, ref reportPath, ref classToTest,
+            CheckCommandLineArguments(arguments, ref runAllTests, ref createReport, ref reportPath, ref classToTest,
                 ref tests, ref assemblyToTest);
-            addTestsToFilter(runAllTests, filter, assemblies, assemblyList, classToTest, tests, assemblyToTest,
+            AddTestsToFilter(runAllTests, filter, assemblies, assemblyList, classToTest, tests, assemblyToTest,
                 allTestsFoundInProject);
 
 
@@ -543,25 +556,25 @@ namespace TestRunner
             }
 
             if (createReport)
-                createXMLReport(reportPath, xmlContent);
+                CreateXmlReport(reportPath, xmlContent);
         }
 
-        private static void addTestsToFilter(bool runAllTests, OrFilter filter, Assembly[] assemblies,
-            List<string> assemblyList, List<string> ClassToTest, List<string> Tests, List<string> AssemblyToTest,
-            List<AltMyTest> tests)
+        private static void AddTestsToFilter(bool runAllTests, OrFilter filter, Assembly[] assemblies,
+            List<string> assemblyList, List<string> classToTest, List<string> tests, List<string> assemblyToTest,
+            List<AltMyTest> myTests)
         {
             if (runAllTests)
-                addAllTestsToFilter(filter, assemblyList, tests);
+                AddAllTestsToFilter(filter, assemblyList, myTests);
             else
             {
-                addClassTestsToFilter(filter, assemblyList, ClassToTest, tests);
-                addTestNamesToFilter(filter, assemblyList, Tests, tests);
+                AddClassTestsToFilter(filter, assemblyList, classToTest, myTests);
+                AddTestNamesToFilter(filter, assemblyList, tests, myTests);
                 var allAssemblies = assemblies.ToList();
-                addAssemblyTestsToFilter(filter, assemblyList, AssemblyToTest, tests, allAssemblies);
+                AddAssemblyTestsToFilter(filter, assemblyList, assemblyToTest, myTests, allAssemblies);
             }
         }
 
-        private static void addTestNamesToFilter(OrFilter filter, List<string> assemblyList, List<string> Tests,
+        private static void AddTestNamesToFilter(OrFilter filter, List<string> assemblyList, List<string> Tests,
             List<AltMyTest> tests)
         {
             foreach (var testName in Tests)
@@ -574,22 +587,22 @@ namespace TestRunner
         }
 
 
-        private static void addAssemblyTestsToFilter(OrFilter filter, List<string> assemblyList,
-            List<string> AssemblyToTest, List<AltMyTest> tests, List<Assembly> allAssemblies)
+        private static void AddAssemblyTestsToFilter(OrFilter filter, List<string> assemblyList,
+            List<string> assemblyToTest, List<AltMyTest> tests, List<Assembly> allAssemblies)
         {
-            foreach (var assembly in AssemblyToTest)
+            foreach (var assembly in assemblyToTest)
             {
                 if (!allAssemblies.Exists(a => a.GetName().Name == assembly))
                     throw new System.Exception("Assembly: " + assembly + " not found");
             }
 
-            if (AssemblyToTest.Count != 0)
+            if (assemblyToTest.Count != 0)
                 foreach (var test in tests)
-                    if (AssemblyToTest.Contains(test.TestAssembly))
+                    if (assemblyToTest.Contains(test.TestAssembly))
                         addTestToRun(filter, assemblyList, test);
         }
 
-        private static void addClassTestsToFilter(OrFilter filter, List<string> assemblyList, List<string> ClassToTest,
+        private static void AddClassTestsToFilter(OrFilter filter, List<string> assemblyList, List<string> ClassToTest,
             List<AltMyTest> tests)
         {
             foreach (var className in ClassToTest)
@@ -607,7 +620,7 @@ namespace TestRunner
             }
         }
 
-        private static void addAllTestsToFilter(OrFilter filter, List<string> assemblyList, List<AltMyTest> tests)
+        private static void AddAllTestsToFilter(OrFilter filter, List<string> assemblyList, List<AltMyTest> tests)
         {
             foreach (var test in tests)
                 if (!test.IsSuite)
@@ -621,7 +634,7 @@ namespace TestRunner
                 assemblyList.Add(test.TestAssembly);
         }
 
-        private static void checkCommandLineArguments(string[] arguments, ref bool runAllTests, ref bool createReport,
+        private static void CheckCommandLineArguments(string[] arguments, ref bool runAllTests, ref bool createReport,
             ref string reportPath, ref List<string> classToTest, ref List<string> tests,
             ref List<string> assemblyToTest)
         {
@@ -639,21 +652,21 @@ namespace TestRunner
                         break;
                     case "-testsClass":
                         runAllTests = false;
-                        addArgumentsToList(arguments, classToTest, i);
+                        AddArgumentsToList(arguments, classToTest, i);
                         break;
                     case "-tests":
                         runAllTests = false;
-                        addArgumentsToList(arguments, tests, i);
+                        AddArgumentsToList(arguments, tests, i);
                         break;
                     case "-testsAssembly":
                         runAllTests = false;
-                        addArgumentsToList(arguments, assemblyToTest, i);
+                        AddArgumentsToList(arguments, assemblyToTest, i);
                         break;
                 }
             }
         }
 
-        private static void addArgumentsToList(string[] arguments, List<string> testsList, int i)
+        private static void AddArgumentsToList(string[] arguments, List<string> testsList, int i)
         {
             int j = i + 1;
             while (j < arguments.Length - 1 && !arguments[j].StartsWith("-"))
@@ -663,7 +676,7 @@ namespace TestRunner
             }
         }
 
-        private static void createXMLReport(string reportPath, TNode xmlContent)
+        private static void CreateXmlReport(string reportPath, TNode xmlContent)
         {
             XmlWriter xmlWriter = XmlWriter.Create(reportPath);
             xmlContent.WriteTo(xmlWriter);
@@ -671,12 +684,12 @@ namespace TestRunner
             xmlWriter.Close();
         }
 
-        private static List<AltMyTest> setUpTestsForCommandLineRun()
+        private static List<AltMyTest> SetUpTestsForCommandLineRun()
         {
             return SetUpListTest();
         }
 
-        public static List<AltMyTest> GetTestsByParent(string parentName)
+        private static List<AltMyTest> GetTestsByParent(string parentName)
         {
             var tests = SetUpListTest();
             var parent = tests.Find(test => test.TestName == parentName);
@@ -690,10 +703,10 @@ namespace TestRunner
             return children;
         }
 
-        public static void RunTestByParent(string parentName)
+        public void RunTestByParent(string parentName)
         {
             var tests = GetTestsByParent(parentName);
-            RunTests(tests, TestRunMode.RunAllTest);
+            RunTests(tests, TestRunMode.RunAllTest, 2);
         }
     }
 }

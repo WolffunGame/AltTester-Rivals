@@ -1,3 +1,4 @@
+using System;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
 using NUnit.Framework;
@@ -8,17 +9,20 @@ namespace Wolffun.Automation.Tests
     public class TestLoginNotHaveTutorial
     {
         private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
-        private AltDriver altDriver;
+        private Altom.AltDriver.AltDriver altDriver;
         private readonly int _port = -1;
-        
+
 
         [OneTimeSetUp]
         public void SetUp()
         {
-            var port = _port == -1 ? PoolPort.GetAvailablePort() : _port;
-            altDriver = new AltDriver(host: TestsHelper.GetAltDriverHost(),
-                port: port,
-                enableLogging: true);
+            var info = PoolConnectionInfo.GetAvailableConnectionInfo();
+            var port = _port == -1 ? info.Port : _port;
+            var host = info.Address;
+            if (port == -1 || string.IsNullOrEmpty(host))
+                throw new Exception("No available connection info");
+            
+            altDriver = new Altom.AltDriver.AltDriver(host: host, port: port, enableLogging: true);
             Logger.Info("AltDriver started on port: " + port);
             DriverLogManager.SetMinLogLevel(AltLogger.Console, AltLogLevel.Info);
             //DriverLogManager.SetMinLogLevel(AltLogger.Unity, AltLogLevel.Info);
@@ -33,10 +37,12 @@ namespace Wolffun.Automation.Tests
         [SetUp]
         public void LoadLevel()
         {
+
+
             altDriver.ResetInput();
 
             altDriver.SetCommandResponseTimeout(60);
-            
+
             Logger.Info("Loading level");
         }
 
@@ -88,7 +94,7 @@ namespace Wolffun.Automation.Tests
             altDriver.WaitFor(5);
             leaveButton.Click();
         }
-        
+
         [Test]
         public void Test6CurrentSceneIsBattleEndReward()
         {

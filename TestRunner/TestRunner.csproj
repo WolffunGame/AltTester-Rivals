@@ -58,12 +58,13 @@
     <ItemGroup>
         <Compile Include="AltMyTest.cs" />
         <Compile Include="AltTestListener.cs" />
+        <Compile Include="Constant.cs" />
+        <Compile Include="PoolConnectionInfo.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Services\ActivationService.cs" />
+        <Compile Include="Services\EchoService.cs" />
         <Compile Include="TestRunner.cs" />
-        <Compile Include="TestScripts\Constant.cs" />
-        <Compile Include="TestScripts\PoolPort.cs" />
         <Compile Include="TestScripts\TestHelper.cs" />
         <Compile Include="TestScripts\TestLoginNotHaveTutorial.cs" />
     </ItemGroup>
