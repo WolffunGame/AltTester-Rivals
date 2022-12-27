@@ -88,7 +88,7 @@ namespace TestRunner
             OnTestRunFinished?.Invoke($"{progress}/{total}");
         }
 
-        public void RunTests(List<AltMyTest> myTests, TestRunMode testMode, int numberOfRun)
+        public async Task RunTests(List<AltMyTest> myTests, TestRunMode testMode, int numberOfRun)
         {
             Task runTask = new Task(() =>
             {
@@ -98,7 +98,7 @@ namespace TestRunner
             for (int i = 0; i < numberOfRun; i++)
             {
                 runTask.Start();
-                runTask.Wait();
+                await runTask;
             }
         }
 
@@ -706,7 +706,7 @@ namespace TestRunner
         public void RunTestByParent(string parentName)
         {
             var tests = GetTestsByParent(parentName);
-            RunTests(tests, TestRunMode.RunAllTest, 2);
+            RunTests(tests, TestRunMode.RunAllTest);
         }
     }
 }

@@ -3,6 +3,8 @@ using AltWebSocketSharp;
 using AltWebSocketSharp.Server;
 using Newtonsoft.Json;
 using Wolffun.Automation.Tests;
+using WolffunTester;
+using WolffunTester.TestRunner;
 
 namespace TestRunner.Services
 {
@@ -13,24 +15,27 @@ namespace TestRunner.Services
         public const string TestParentSample = "Wolffun.Automation.Tests.TestLoginNotHaveTutorial";
         private readonly TestRunner _testRunner = new TestRunner();
         //private string _host = "127.0.0.1";
+        private ActivationMessage? _message;
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var message = JsonConvert.DeserializeObject<ActivationMessage>(e.Data);
-            if (message == null)
+            _message = JsonConvert.DeserializeObject<ActivationMessage>(e.Data);
+            if (_message == null)
             {
                 return;
             }
-
-            if (message.Status == ActivationProgress.Connecting)
+            
+            Logger.Info($"Message received: {_message}");
+            
+            if (_message.Status == ActivationProgress.Connecting)
             {
-                Logger.Info($"Device {message.DeviceName} is connecting to server");
+                Logger.Info($"Device {_message.DeviceName} is connecting to server");
 
-                PoolConnectionInfo.Add(message.DeviceName, message.DeviceHost, out var port);
+                PoolConnectionInfo.Add(_message.Id, _message.DeviceHost, out var port);
                 var data = new ActivationMessage()
                 {
-                    DeviceHost = message.DeviceHost, DevicePort = port, DeviceName = message.DeviceName,
-                    Status = ActivationProgress.Connecting
+                    DeviceHost = _message.DeviceHost, DevicePort = port, DeviceName = _message.DeviceName,
+                    Status = ActivationProgress.Connecting, Id = _message.Id
                 };
 
                 var json = JsonConvert.SerializeObject(data);
@@ -38,13 +43,13 @@ namespace TestRunner.Services
 
                 Logger.Info("Sent: " + json);
             }
-            else if (message.Status == ActivationProgress.Starting)
+            else if (_message.Status == ActivationProgress.Starting)
             {
                 var data = new ActivationMessage()
                 {
-                    DeviceHost = message.DeviceHost, DevicePort = PoolConnectionInfo.GetPortByName(message.DeviceName),
-                    DeviceName = message.DeviceName,
-                    Status = ActivationProgress.Starting
+                    DeviceHost = _message.DeviceHost, DevicePort = PoolConnectionInfo.GetPortById(_message.Id),
+                    DeviceName = _message.DeviceName,
+                    Status = ActivationProgress.Starting, Id = _message.Id
                 };
 
                 var json = JsonConvert.SerializeObject(data);
@@ -58,13 +63,13 @@ namespace TestRunner.Services
                     $"Start test at device: {data.DeviceName}, port: {data.DevicePort}, host: {data.DeviceHost}, status: {data.Status}, test: {TestParentSample}");
                 //TestRunner.RunTestByParent(TestParentSample);
                 _testRunner.RunTestByParent(TestParentSample);
-                _testRunner.OnTestRunFinished = s => { Logger.Info($"Finished test on device {message.DeviceName} ,test progress: {s}"); };
+                _testRunner.OnTestRunFinished = s => { Logger.Info($"Finished test on device {_message.DeviceName} ,test progress: {s}"); };
 
-            }else if (message.Status == ActivationProgress.Stopping)
+            }else if (_message.Status == ActivationProgress.Stopping)
             {
-                PoolConnectionInfo.Remove(message.DeviceName);
+                PoolConnectionInfo.Remove(_message.Id);
         
-                Logger.Info($"Device {message.DeviceName} is finished");
+                Logger.Info($"Device {_message.DeviceName} is finished");
                 _testRunner.StopTests();
             }
         }
@@ -90,6 +95,7 @@ namespace TestRunner.Services
 
     public class ActivationMessage
     {
+        [JsonProperty(Order = 0)] public int Id;
         [JsonProperty(Order = 1)] public int DevicePort;
         [JsonProperty(Order = 2)] public string DeviceHost;
         [JsonProperty(Order = 3)] public string DeviceName;

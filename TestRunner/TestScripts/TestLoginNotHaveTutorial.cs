@@ -2,6 +2,7 @@ using System;
 using Altom.AltDriver;
 using Altom.AltDriver.Logging;
 using NUnit.Framework;
+using WolffunTester.TestRunner;
 
 namespace Wolffun.Automation.Tests
 {
